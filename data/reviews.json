@@ -1,0 +1,11 @@
+[
+  {
+    "id": "rev-1",
+    "roomId": "room-1",
+    "userId": "user-test",
+    "username": "user123",
+    "rating": 5,
+    "comment": "Phòng trọ cực kỳ đẹp, ban công mát mẻ đúng như mô tả. Chủ nhà dễ tính.",
+    "createdAt": "2026-06-04T14:55:31.246Z"
+  }
+]

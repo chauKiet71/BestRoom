@@ -1,0 +1,6 @@
+{
+  "name": "Website Tìm Kiếm Phòng Trọ",
+  "description": "Website tìm kiếm phòng trọ với bộ lọc chi tiết và trang quản trị Admin thêm, sửa, xoá phòng.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

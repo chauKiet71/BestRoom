@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
@@ -397,9 +396,7 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<boolea
   return true;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
 
   // Middleware
   app.use(express.json());
@@ -1037,29 +1034,40 @@ async function startServer() {
     }
   });
 
-  // Initialize Database tables and Seed mock data
-  if (usePostgres) {
-    await initDatabase();
-  }
-
-  // Integrate Vite Dev Service
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Initialize Database tables and Seed mock data
+if (usePostgres) {
+  initDatabase().catch((err) => {
+    console.error("❌ Database initialization failed:", err);
   });
 }
 
-startServer();
+// Local server startup logic
+async function bootstrap() {
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer } = await import("vite");
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
+
+    const PORT = 3000;
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+}
+
+bootstrap().catch((err) => {
+  console.error("❌ Error starting local server:", err);
+});
+
+export default app;

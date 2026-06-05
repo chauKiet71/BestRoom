@@ -414,10 +414,38 @@ async function sendResetCodeEmail(toEmail: string, code: string): Promise<boolea
   return true;
 }
 
+let dbInitPromise: Promise<void> | null = null;
+function ensureDatabase(): Promise<void> {
+  if (!usePostgres) return Promise.resolve();
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase().catch((err) => {
+      console.error("❌ Database initialization failed:", err);
+      dbInitPromise = null; // allow retry on next request if failed
+      throw err;
+    });
+  }
+  return dbInitPromise;
+}
+
 const app = express();
 
   // Middleware
   app.use(express.json());
+
+  // Middleware to ensure database is initialized before handling any API requests
+  app.use(async (req, res, next) => {
+    if (req.path === "/api/health") {
+      return next();
+    }
+    if (req.path.startsWith("/api/")) {
+      try {
+        await ensureDatabase();
+      } catch (err: any) {
+        return res.status(500).json({ error: "Database connection failed: " + err.message });
+      }
+    }
+    next();
+  });
 
   // API - Heatlh Check
   app.get("/api/health", (req, res) => {
@@ -902,11 +930,7 @@ const app = express();
     }
   });
 
-// Initialize Database tables and Seed mock data
-if (usePostgres) {
-  initDatabase().catch((err) => {
-    console.error("❌ Database initialization failed:", err);
-  });
-}
+// Start initializing database in the background at startup
+ensureDatabase().catch(() => {});
 
 export default app;

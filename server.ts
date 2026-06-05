@@ -9,7 +9,14 @@ try { dotenv.config(); } catch (_) {}
 
 // Resolve data directory - works on both ESM (local tsx) and CommonJS (Vercel serverless)
 import { fileURLToPath } from "url";
-const __serverDir = typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+let __serverDir: string;
+try {
+  // ESM environment (local dev with tsx)
+  __serverDir = path.dirname(fileURLToPath(import.meta.url));
+} catch {
+  // CommonJS environment (Vercel serverless bundle)
+  __serverDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+}
 const __dataDir = path.join(__serverDir, "data");
 const DB_FILE_PATH = path.join(__dataDir, "rooms.json");
 const USERS_FILE_PATH = path.join(__dataDir, "users.json");
@@ -23,7 +30,14 @@ const usePostgres = !!(
 
 // PostgreSQL Connection Pool - lazy initialized to avoid crash on module load
 import { createRequire } from "module";
-const _require = typeof require !== "undefined" ? require : createRequire(import.meta.url);
+let _require: NodeRequire;
+try {
+  // ESM environment (local dev with tsx)
+  _require = createRequire(import.meta.url);
+} catch {
+  // CommonJS environment (Vercel serverless bundle)
+  _require = typeof require !== "undefined" ? require : createRequire(process.cwd() + "/package.json");
+}
 let _pool: any = null;
 function getPool(): any {
   if (!_pool) {

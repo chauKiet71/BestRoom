@@ -1,12 +1,12 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { Pool } from "pg";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import type { Pool as PgPool } from "pg";
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (safe - wị trên Vercel nếu chưa có file .env)
+try { dotenv.config(); } catch (_) {}
 
 const DB_FILE_PATH = path.join(process.cwd(), "data", "rooms.json");
 const USERS_FILE_PATH = path.join(process.cwd(), "data", "users.json");
@@ -18,14 +18,27 @@ const usePostgres = !!(
   !process.env.DATABASE_URL.includes("ep-cool-butterfly-123456")
 );
 
-// PostgreSQL Connection Pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+// PostgreSQL Connection Pool - lazy initialized to avoid crash on module load
+let _pool: PgPool | null = null;
+function getPool(): PgPool {
+  if (!_pool) {
+    const { Pool } = require("pg");
+    _pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes("sslmode") ? { rejectUnauthorized: false } : undefined,
+    }) as PgPool;
+    _pool!.on("error", (err: Error) => {
+      console.error("Unexpected error on idle pg client:", err);
+    });
+  }
+  return _pool!;
+}
 
-// Bắt lỗi kết nối không mong muốn từ pool tránh crash serverless function
-pool.on("error", (err) => {
-  console.error("Unexpected error on idle pg client:", err);
+// Convenience proxy to keep existing code working
+const pool = new Proxy({} as PgPool, {
+  get(_target, prop) {
+    return (getPool() as any)[prop];
+  }
 });
 
 if (usePostgres) {

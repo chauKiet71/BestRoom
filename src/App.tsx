@@ -231,7 +231,10 @@ export default function App() {
       setLoading(true);
       // Fetch Rooms
       const roomsRes = await fetch("/api/rooms");
-      if (!roomsRes.ok) throw new Error("Không thể kết nối API danh sách phòng");
+      if (!roomsRes.ok) {
+        const errData = await roomsRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Không thể kết nối API danh sách phòng");
+      }
       const roomsData = await roomsRes.json();
       setRooms(roomsData);
 

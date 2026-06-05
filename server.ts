@@ -44,7 +44,7 @@ const pool = new Proxy({} as PgPool, {
 if (usePostgres) {
   console.log("🔌 Neon PostgreSQL connection configured. Database mode: Postgres.");
 } else {
-  console.log("⚠️ DATABASE_URL is not configured or uses placeholder. Database mode: Local JSON files.");
+  console.error("❌ DATABASE_URL is not configured or uses placeholder. Local JSON fallback is disabled. Configure DATABASE_URL to enable API database access.");
 }
 
 // =================== POSTGRESQL HELPER MAPPERS ===================
@@ -431,8 +431,7 @@ const app = express();
         const { rows } = await pool.query("SELECT * FROM rooms ORDER BY created_at DESC");
         res.json(rows.map(mapRoomFromDb));
       } else {
-        const rooms = getRooms();
-        res.json(rooms);
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Cannot retrieve boarding rooms: " + err.message });
@@ -460,25 +459,7 @@ const app = express();
 
         res.json(mappedRoom);
       } else {
-        const rooms = getRooms();
-        const index = rooms.findIndex((r) => r.id === id);
-        if (index === -1) {
-          return res.status(404).json({ error: "Room not found" });
-        }
-        
-        // Increment viewing interest
-        rooms[index].interestedCount = (rooms[index].interestedCount || 0) + 1;
-        saveRooms(rooms);
-
-        // Get reviews for this room
-        const reviews = getReviews().filter(rev => rev.roomId === id);
-        
-        const detailedRoom = {
-          ...rooms[index],
-          reviews
-        };
-
-        res.json(detailedRoom);
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Error retrieving room details: " + err.message });
@@ -567,10 +548,7 @@ const app = express();
         const { rows } = await pool.query(queryText, values);
         res.status(201).json(mapRoomFromDb(rows[0]));
       } else {
-        const rooms = getRooms();
-        rooms.unshift(preparedRoom); // Add to the top of list
-        saveRooms(rooms);
-        res.status(201).json(preparedRoom);
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Failed to create boarding room: " + err.message });
@@ -645,31 +623,7 @@ const app = express();
         const { rows } = await pool.query(queryText, values);
         res.json(mapRoomFromDb(rows[0]));
       } else {
-        const rooms = getRooms();
-        const index = rooms.findIndex((r) => r.id === id);
-        
-        if (index === -1) {
-          return res.status(404).json({ error: "Room not found to update." });
-        }
-
-        rooms[index] = {
-          ...rooms[index],
-          ...updatedFields,
-          id, // Keep original ID
-          price: Number(updatedFields.price),
-          area: Number(updatedFields.area),
-          rating: Number(updatedFields.rating),
-          buildYear: Number(updatedFields.buildYear),
-          images: Array.isArray(updatedFields.images) ? updatedFields.images : [updatedFields.image].filter(Boolean),
-          hasBalcony: !!updatedFields.hasBalcony,
-          hasMezzanine: !!updatedFields.hasMezzanine,
-          hasFurniture: !!updatedFields.hasFurniture,
-          electricityPrice: Number(updatedFields.electricityPrice || 3500),
-          district: updatedFields.district || ""
-        };
-
-        saveRooms(rooms);
-        res.json(rooms[index]);
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Failed to update room: " + err.message });
@@ -694,15 +648,7 @@ const app = express();
         }
         res.json({ success: true, message: `Room ${id} deleted successfully.` });
       } else {
-        const rooms = getRooms();
-        const filtered = rooms.filter((r) => r.id !== id);
-        
-        if (rooms.length === filtered.length) {
-          return res.status(404).json({ error: "Room not found to delete." });
-        }
-
-        saveRooms(filtered);
-        res.json({ success: true, message: `Room ${id} deleted successfully.` });
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Failed to delete room: " + err.message });
@@ -725,18 +671,7 @@ const app = express();
           years: yearRes.rows.map(r => Number(r.build_year))
         });
       } else {
-        const rooms = getRooms();
-        const cities = Array.from(new Set(rooms.map(r => r.city).filter(Boolean)));
-        const wards = Array.from(new Set(rooms.map(r => r.ward).filter(Boolean)));
-        const streets = Array.from(new Set(rooms.map(r => r.street).filter(Boolean)));
-        const years = Array.from(new Set(rooms.map(r => r.buildYear).filter(Boolean))).sort((a,b) => b-a);
-
-        res.json({
-          cities,
-          wards,
-          streets,
-          years
-        });
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -782,34 +717,7 @@ const app = express();
         const { password: _, ...safeUser } = newUser;
         res.status(201).json({ success: true, user: safeUser });
       } else {
-        const users = getUsers();
-        
-        // Duplication check
-        const existsUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-        if (existsUser) {
-          return res.status(400).json({ error: "Tên đăng nhập đã tồn tại trong hệ thống." });
-        }
-
-        const existsEmail = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (existsEmail) {
-          return res.status(400).json({ error: "Địa chỉ Email đã được đăng ký sử dụng." });
-        }
-
-        const newUser = {
-          id: `user-${Date.now()}`,
-          username,
-          phone,
-          email,
-          password,
-          role: "user" // Default regular user
-        };
-
-        users.push(newUser);
-        saveUsers(users);
-
-        // Safe user output without password
-        const { password: _, ...safeUser } = newUser;
-        res.status(201).json({ success: true, user: safeUser });
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Đăng ký thất bại: " + err.message });
@@ -837,17 +745,7 @@ const app = express();
         const { password: _, ...safeUser } = mapUserFromDb(found.rows[0]);
         res.json({ success: true, user: safeUser });
       } else {
-        const users = getUsers();
-        const foundUser = users.find(
-          u => u.username.toLowerCase() === credential.toLowerCase() || u.email.toLowerCase() === credential.toLowerCase()
-        );
-
-        if (!foundUser || foundUser.password !== password) {
-          return res.status(401).json({ error: "Tài khoản hoặc mật khẩu không chính xác." });
-        }
-
-        const { password: _, ...safeUser } = foundUser;
-        res.json({ success: true, user: safeUser });
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Đăng nhập thất bại: " + err.message });
@@ -868,11 +766,7 @@ const app = express();
           return res.status(404).json({ error: "Địa chỉ email không tồn tại trong cơ sở dữ liệu." });
         }
       } else {
-        const users = getUsers();
-        const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (!exists) {
-          return res.status(404).json({ error: "Địa chỉ email không tồn tại trong cơ sở dữ liệu." });
-        }
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
 
       // Generate random 6 DIGIT code
@@ -935,16 +829,7 @@ const app = express();
           return res.status(404).json({ error: "Email tài khoản không tồn tại." });
         }
       } else {
-        const users = getUsers();
-        const index = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-        
-        if (index === -1) {
-          return res.status(404).json({ error: "Email tài khoản không tồn tại." });
-        }
-
-        // Update password
-        users[index].password = newPassword;
-        saveUsers(users);
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
 
       // Consume the code
@@ -1010,42 +895,7 @@ const app = express();
           reviews: reviewsRes.rows.map(mapReviewFromDb)
         });
       } else {
-        const rooms = getRooms();
-        const roomIndex = rooms.findIndex(r => r.id === roomId);
-        if (roomIndex === -1) {
-          return res.status(404).json({ error: "Phòng trọ không tồn tại để đánh giá." });
-        }
-
-        // Create review record
-        const reviews = getReviews();
-        const newReview = {
-          id: `rev-${Date.now()}`,
-          roomId,
-          userId,
-          username,
-          rating: numRating,
-          comment,
-          createdAt: new Date().toISOString()
-        };
-
-        reviews.push(newReview);
-        saveReviews(reviews);
-
-        // Recalculate average rating of this room
-        const roomReviews = reviews.filter(rev => rev.roomId === roomId);
-        const avgRating = roomReviews.length > 0 
-          ? Math.round(roomReviews.reduce((sum, rev) => sum + rev.rating, 0) / roomReviews.length)
-          : numRating;
-
-        rooms[roomIndex].rating = avgRating;
-        saveRooms(rooms);
-
-        res.status(201).json({
-          success: true,
-          newReview,
-          updatedRating: avgRating,
-          reviews: roomReviews
-        });
+        return res.status(500).json({ error: "DATABASE_URL is required. Local JSON fallback is disabled." });
       }
     } catch (err: any) {
       res.status(500).json({ error: "Không thể thêm phần đánh giá: " + err.message });

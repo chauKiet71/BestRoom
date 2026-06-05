@@ -621,7 +621,7 @@ export default function App() {
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-2xl flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
             <div className="text-sm">
-              <span className="font-bold">Hệ thống đang chạy giả lập:</span> {error}
+              <span className="font-bold">Lỗi kết nối hệ thống:</span> {error}
             </div>
             <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">
               <X className="h-4 w-4" />

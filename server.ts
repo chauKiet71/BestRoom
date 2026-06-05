@@ -3,7 +3,8 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
-import type { Pool as PgPool } from "pg";
+import { Pool } from "pg";
+type PgPool = Pool;
 
 // Load environment variables (safe - wị trên Vercel nếu chưa có file .env)
 try { dotenv.config(); } catch (_) {}
@@ -22,11 +23,10 @@ const usePostgres = !!(
 let _pool: PgPool | null = null;
 function getPool(): PgPool {
   if (!_pool) {
-    const { Pool } = require("pg");
     _pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_URL?.includes("sslmode") ? { rejectUnauthorized: false } : undefined,
-    }) as PgPool;
+    });
     _pool!.on("error", (err: Error) => {
       console.error("Unexpected error on idle pg client:", err);
     });

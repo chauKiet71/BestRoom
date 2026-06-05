@@ -223,7 +223,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
           <div className="bg-amber-50 border-b border-amber-200 px-6 py-3.5 text-amber-900 text-xs flex flex-col gap-1 select-all animate-bounce">
             <div className="flex items-center gap-1.5 font-bold">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-              <span>[GIẢ LẬP Hòm Thư] Mã Token Khôi Phục:</span>
+              <span>[Dự phòng] Mã xác thực khôi phục mật khẩu:</span>
             </div>
             <p className="mt-0.5">Mã bảo mật nhận được: <strong className="bg-amber-100 px-2 py-0.5 rounded font-mono text-sm tracking-widest text-amber-950 font-black">{simulatedCode}</strong></p>
             <span className="text-[10px] text-amber-700/80">Nhấn sao chép hoặc ghi nhớ để nhập vào bước tiếp theo.</span>

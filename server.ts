@@ -3,15 +3,17 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
-import { Pool } from "pg";
-type PgPool = Pool;
 
 // Load environment variables (safe - wị trên Vercel nếu chưa có file .env)
 try { dotenv.config(); } catch (_) {}
 
-const DB_FILE_PATH = path.join(process.cwd(), "data", "rooms.json");
-const USERS_FILE_PATH = path.join(process.cwd(), "data", "users.json");
-const REVIEWS_FILE_PATH = path.join(process.cwd(), "data", "reviews.json");
+// Resolve data directory - works on both ESM (local tsx) and CommonJS (Vercel serverless)
+import { fileURLToPath } from "url";
+const __serverDir = typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+const __dataDir = path.join(__serverDir, "data");
+const DB_FILE_PATH = path.join(__dataDir, "rooms.json");
+const USERS_FILE_PATH = path.join(__dataDir, "users.json");
+const REVIEWS_FILE_PATH = path.join(__dataDir, "reviews.json");
 
 // Check if we should use PostgreSQL or fallback to JSON files
 const usePostgres = !!(
@@ -20,22 +22,25 @@ const usePostgres = !!(
 );
 
 // PostgreSQL Connection Pool - lazy initialized to avoid crash on module load
-let _pool: PgPool | null = null;
-function getPool(): PgPool {
+import { createRequire } from "module";
+const _require = typeof require !== "undefined" ? require : createRequire(import.meta.url);
+let _pool: any = null;
+function getPool(): any {
   if (!_pool) {
+    const { Pool } = _require("pg");
     _pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_URL?.includes("sslmode") ? { rejectUnauthorized: false } : undefined,
     });
-    _pool!.on("error", (err: Error) => {
+    _pool.on("error", (err: Error) => {
       console.error("Unexpected error on idle pg client:", err);
     });
   }
-  return _pool!;
+  return _pool;
 }
 
 // Convenience proxy to keep existing code working
-const pool = new Proxy({} as PgPool, {
+const pool = new Proxy({} as any, {
   get(_target, prop) {
     return (getPool() as any)[prop];
   }
@@ -433,16 +438,13 @@ const app = express();
   app.use(express.json());
 
   // Middleware to ensure database is initialized before handling any API requests
+  // On Vercel serverless, req.path may not start with /api/ due to rewrites,
+  // so we run ensureDatabase() on ALL requests (it's a no-op after first success)
   app.use(async (req, res, next) => {
-    if (req.path === "/api/health") {
-      return next();
-    }
-    if (req.path.startsWith("/api/")) {
-      try {
-        await ensureDatabase();
-      } catch (err: any) {
-        return res.status(500).json({ error: "Database connection failed: " + err.message });
-      }
+    try {
+      await ensureDatabase();
+    } catch (err: any) {
+      return res.status(500).json({ error: "Database connection failed: " + err.message });
     }
     next();
   });

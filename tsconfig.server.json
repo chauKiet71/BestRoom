@@ -11,6 +11,6 @@
     "resolveJsonModule": true,
     "outDir": "dist-server"
   },
-  "include": ["server.ts", "api/**/*.ts"],
+  "include": ["local-server.ts", "api/**/*.ts"],
   "exclude": ["node_modules", "src", "dist"]
 }

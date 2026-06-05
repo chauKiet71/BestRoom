@@ -1,0 +1,16 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/api/auth/forgot-password/route": "app/api/auth/forgot-password/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/auth/reset-password/route": "app/api/auth/reset-password/route.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/api/meta/route": "app/api/meta/route.js",
+  "/api/rooms/[id]/reviews/route": "app/api/rooms/[id]/reviews/route.js",
+  "/api/rooms/[id]/route": "app/api/rooms/[id]/route.js",
+  "/api/rooms/route": "app/api/rooms/route.js",
+  "/page": "app/page.js",
+  "/search/page": "app/search/page.js"
+}

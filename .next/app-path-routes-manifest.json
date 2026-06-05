@@ -1,0 +1,16 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/admin/page": "/admin",
+  "/api/auth/forgot-password/route": "/api/auth/forgot-password",
+  "/api/auth/login/route": "/api/auth/login",
+  "/api/auth/register/route": "/api/auth/register",
+  "/api/auth/reset-password/route": "/api/auth/reset-password",
+  "/api/health/route": "/api/health",
+  "/api/meta/route": "/api/meta",
+  "/api/rooms/[id]/reviews/route": "/api/rooms/[id]/reviews",
+  "/api/rooms/[id]/route": "/api/rooms/[id]",
+  "/api/rooms/route": "/api/rooms",
+  "/page": "/",
+  "/search/page": "/search"
+}

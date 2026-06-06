@@ -212,7 +212,7 @@ export default function Header({
                   alt="BestRoom Logo" 
                   className="h-8 w-8 rounded-lg object-cover"
                 />
-                <span className="font-bold text-gray-900 text-sm">BestRoom Menu</span>
+                <span className="font-bold text-gray-900 text-sm">BestRoom</span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -223,8 +223,7 @@ export default function Header({
             </div>
 
             {/* Navigation links */}
-            <div className="space-y-4 mb-8">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">Điều hướng</span>
+            <div className="mb-8">
               <div className="flex flex-col gap-2">
                 <Link
                   href="/"

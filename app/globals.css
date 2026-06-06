@@ -1,4 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Reddit Sans", "Helvetica", "Arial", "Roboto", sans-serif;
+}
 
 /* Custom Scrollbar Styling */
 .custom-scrollbar::-webkit-scrollbar {
@@ -23,4 +28,17 @@
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #3b82f6 transparent;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-from-right {
+  animation: slideInRight 0.3s ease-out forwards;
 }

@@ -30,6 +30,9 @@ export interface BoardingRoom {
   hasFurniture: boolean; // Nội thất (true = có, false = không)
   electricityPrice: number; // Giá điện (VND/kWh)
   interestedCount: number; // Trọ được quan tâm (lượt click/view)
+  ownerId?: string | null;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string | null;
   createdAt: string; // ISO date string, used for "Trọ mới đăng"
   reviews?: Review[]; // Danh sách đánh giá của phòng
 }
@@ -40,6 +43,7 @@ export interface User {
   email: string;
   phone: string;
   role: "user" | "admin";
+  avatar?: string;
 }
 
 export interface Review {

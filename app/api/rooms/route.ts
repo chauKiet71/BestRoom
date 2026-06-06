@@ -1,12 +1,25 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapRoomFromDb } from "@/lib/mappers";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await ensureSchema();
-    const rows = await sql`SELECT * FROM rooms ORDER BY created_at DESC`;
+    const userRole = request.headers.get("x-user-role");
+    const userId = request.headers.get("x-user-id");
+
+    let rows;
+    if (userRole === "admin") {
+      rows = await sql`SELECT * FROM rooms ORDER BY created_at DESC`;
+    } else if (userRole === "user" && userId) {
+      rows = await sql`
+        SELECT * FROM rooms 
+        WHERE approval_status = 'approved' OR owner_id = ${userId} 
+        ORDER BY created_at DESC
+      `;
+    } else {
+      rows = await sql`SELECT * FROM rooms WHERE approval_status = 'approved' ORDER BY created_at DESC`;
+    }
     return NextResponse.json(rows.map(mapRoomFromDb));
   } catch (err: any) {
     return NextResponse.json(
@@ -22,9 +35,10 @@ export async function POST(request: NextRequest) {
 
     // Security Check
     const userRole = request.headers.get("x-user-role");
-    if (userRole !== "admin") {
+    const userId = request.headers.get("x-user-id");
+    if (userRole !== "admin" && userRole !== "user") {
       return NextResponse.json(
-        { error: "Quyền truy cập bị từ chối. Chỉ tài khoản Admin mới có quyền thêm phòng!" },
+        { error: "Quyền truy cập bị từ chối. Bạn cần đăng nhập để đăng phòng!" },
         { status: 403 }
       );
     }
@@ -54,7 +68,9 @@ export async function POST(request: NextRequest) {
       hasMezzanine: !!newRoom.hasMezzanine,
       hasFurniture: !!newRoom.hasFurniture,
       electricityPrice: Number(newRoom.electricityPrice || 3500),
-      district: newRoom.district || ""
+      district: newRoom.district || "",
+      ownerId: userId || null,
+      approvalStatus: userRole === "admin" ? "approved" : "pending"
     };
 
     const rows = await sql`
@@ -63,7 +79,7 @@ export async function POST(request: NextRequest) {
         contact_name, contact_phone, image, images, is_shared_owner, rating,
         has_wifi, water_fee_type, status, hours_type, build_year, has_parking,
         is_people_limited, max_people, has_elevator, has_contract, interested_count, created_at,
-        has_balcony, has_mezzanine, has_furniture, electricity_price
+        has_balcony, has_mezzanine, has_furniture, electricity_price, owner_id, approval_status
       ) VALUES (
         ${preparedRoom.id},
         ${preparedRoom.title},
@@ -96,7 +112,9 @@ export async function POST(request: NextRequest) {
         ${preparedRoom.hasBalcony},
         ${preparedRoom.hasMezzanine},
         ${preparedRoom.hasFurniture},
-        ${preparedRoom.electricityPrice}
+        ${preparedRoom.electricityPrice},
+        ${preparedRoom.ownerId},
+        ${preparedRoom.approvalStatus}
       )
       RETURNING *
     `;
@@ -105,7 +123,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     return NextResponse.json(
       { error: "Server error: " + err.message },
-      { status: 505 }
+      { status: 500 }
     );
   }
 }

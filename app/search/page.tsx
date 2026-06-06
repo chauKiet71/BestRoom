@@ -35,6 +35,9 @@ export default function SearchPage() {
   // Filtered rooms logic
   const getFilteredRooms = () => {
     return rooms.filter((room) => {
+      // Only show approved rooms in search view
+      if (room.approvalStatus !== "approved") return false;
+
       // 1. Search Query (Title / description / Street name / Address)
       if (filters.searchQuery) {
         const q = filters.searchQuery.toLowerCase();

@@ -18,8 +18,8 @@ export default function FiltersSidebar() {
   const priceRanges = [
     { label: "Tất cả giá", value: "all" },
     { label: "Dưới 2 triệu", value: "under-2m" },
-    { label: "Từ 2M - 4 triệu", value: "2m-4m" },
-    { label: "Từ 4M - 7 triệu", value: "4m-7m" },
+    { label: "Từ 2 - 4 triệu", value: "2m-4m" },
+    { label: "Từ 4 - 7 triệu", value: "4m-7m" },
     { label: "Trên 7 triệu", value: "above-7m" },
   ];
 

@@ -1,5 +1,0 @@
-1:"$Sreact.fragment"
-2:I[97367,["/_next/static/chunks/0gztugp-cstxw.js","/_next/static/chunks/14mrh2-p_w84d.js","/_next/static/chunks/2vsv8x6j6_w3r.js"],"ViewportBoundary"]
-3:I[97367,["/_next/static/chunks/0gztugp-cstxw.js","/_next/static/chunks/14mrh2-p_w84d.js","/_next/static/chunks/2vsv8x6j6_w3r.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"BestRoom - Hệ Thống Tìm Kiếm Phòng Trọ Giá Tốt & An Ninh Nhất 2026"}],["$","meta","1",{"name":"description","content":"Lọc chi tiết hàng chục tiện nghi: chung chủ, wifi, nước miễn phí, thâm niên phòng, thang máy, hợp đồng cam kết chặt chẽ và không mất thêm phí trung gian."}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"wG0X4JGC0RbpdxkNidUEg"}

@@ -32,6 +32,9 @@ export function mapRoomFromDb(row: any): any {
     hasFurniture:     !!row.has_furniture,
     electricityPrice: Number(row.electricity_price || 0),
     interestedCount:  Number(row.interested_count || 0),
+    ownerId:          row.owner_id || null,
+    approvalStatus:   row.approval_status || 'approved',
+    rejectionReason:  row.rejection_reason || null,
     createdAt:        row.created_at
       ? new Date(row.created_at).toISOString()
       : new Date().toISOString(),
@@ -62,5 +65,6 @@ export function mapUserFromDb(row: any): any {
     phone:    row.phone,
     password: row.password,
     role:     row.role,
+    avatar:   row.avatar || "",
   };
 }

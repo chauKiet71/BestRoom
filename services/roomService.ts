@@ -2,19 +2,23 @@ import { apiFetch } from "./api";
 import { BoardingRoom } from "@/types";
 
 export const roomService = {
-  async getRooms(): Promise<BoardingRoom[]> {
-    return apiFetch("/api/rooms");
+  async getRooms(userRole?: string, userId?: string): Promise<BoardingRoom[]> {
+    const headers: Record<string, string> = {};
+    if (userRole) headers["x-user-role"] = userRole;
+    if (userId) headers["x-user-id"] = userId;
+    return apiFetch("/api/rooms", { headers });
   },
 
   async getRoom(id: string): Promise<BoardingRoom> {
     return apiFetch(`/api/rooms/${id}`);
   },
 
-  async createRoom(data: Partial<BoardingRoom>, userRole: string): Promise<BoardingRoom> {
+  async createRoom(data: Partial<BoardingRoom>, userRole: string, userId: string): Promise<BoardingRoom> {
     return apiFetch("/api/rooms", {
       method: "POST",
       headers: {
         "x-user-role": userRole,
+        "x-user-id": userId,
       },
       body: JSON.stringify(data),
     });
@@ -23,23 +27,43 @@ export const roomService = {
   async updateRoom(
     id: string,
     data: Partial<BoardingRoom>,
-    userRole: string
+    userRole: string,
+    userId: string
   ): Promise<BoardingRoom> {
     return apiFetch(`/api/rooms/${id}`, {
       method: "PUT",
       headers: {
         "x-user-role": userRole,
+        "x-user-id": userId,
       },
       body: JSON.stringify(data),
     });
   },
 
-  async deleteRoom(id: string, userRole: string): Promise<{ success: boolean; message: string }> {
+  async deleteRoom(id: string, userRole: string, userId: string): Promise<{ success: boolean; message: string }> {
     return apiFetch(`/api/rooms/${id}`, {
       method: "DELETE",
       headers: {
         "x-user-role": userRole,
+        "x-user-id": userId,
       },
+    });
+  },
+
+  async approveRoom(
+    id: string,
+    action: "approve" | "reject",
+    reason: string | undefined,
+    userRole: string,
+    userId: string
+  ): Promise<{ success: boolean; room: BoardingRoom }> {
+    return apiFetch(`/api/rooms/${id}/approve`, {
+      method: "POST",
+      headers: {
+        "x-user-role": userRole,
+        "x-user-id": userId,
+      },
+      body: JSON.stringify({ action, reason }),
     });
   },
 

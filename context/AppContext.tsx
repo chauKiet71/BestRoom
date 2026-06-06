@@ -91,7 +91,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     try {
       setLoading(true);
       setError(null);
-      const roomsData = await roomService.getRooms();
+      const roomsData = await roomService.getRooms(currentUser?.role, currentUser?.id);
       setRooms(roomsData);
 
       const metaData = await metaService.getMeta();
@@ -106,7 +106,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [currentUser]);
 
   const logout = () => {
     localStorage.removeItem("bestroom_user");

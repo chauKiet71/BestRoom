@@ -4,10 +4,12 @@ import Header from "./Header";
 import Footer from "./Footer";
 import AuthModal from "./AuthModal";
 import RoomDetailsModal from "./RoomDetailsModal";
+import LoadingScreen from "./LoadingScreen";
 import { useApp } from "@/context/AppContext";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const {
+    loading,
     isAuthModalOpen,
     setIsAuthModalOpen,
     authModalMode,
@@ -32,6 +34,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
   return (
     <>
+      <LoadingScreen loading={loading} />
+
       <Header
         onLoginClick={handleLoginClick}
         onRegisterClick={handleRegisterClick}

@@ -32,15 +32,18 @@ export default function HomePage() {
     router.push("/search");
   };
 
+  const approvedRooms = rooms.filter((room) => room.approvalStatus === "approved");
+
   // Section A: Newly posted rooms (sorted by date descending)
-  const newlyPostedRooms = [...rooms]
+  const newlyPostedRooms = [...approvedRooms]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4);
 
   // Section B: Highly interested rooms (sorted by interestedCount descending)
-  const premiumInterestedRooms = [...rooms]
+  const premiumInterestedRooms = [...approvedRooms]
     .sort((a, b) => (b.interestedCount || 0) - (a.interestedCount || 0))
     .slice(0, 4);
+
 
   if (loading) {
     return (
@@ -72,13 +75,15 @@ export default function HomePage() {
       )}
 
       {/* HERO BANNER SECTION */}
-      <section className="relative bg-gradient-to-br from-blue-950 via-blue-900 to-indigo-950 text-white py-16 px-4 overflow-hidden shadow-md">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent"></div>
+      <section className="relative bg-[url('/hero-bg.png')] bg-cover bg-center bg-no-repeat text-white py-24 px-4 overflow-hidden shadow-md">
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-slate-950/35 z-0"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent z-0"></div>
 
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
           <span className="bg-blue-500/20 text-blue-300 text-xs font-semibold py-1.5 px-3 rounded-full uppercase tracking-wider inline-flex items-center gap-1.5 border border-blue-400/20 mx-auto select-none">
             <Sparkles className="h-3.5 w-3.5" />
-            Tìm Phòng Trọ Giá Tốt - An Ninh Nhất 2026
+            Tìm Phòng Trọ Giá Tốt
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
             Nền Tảng Tìm Kiếm Phòng Trọ <br />
@@ -127,8 +132,8 @@ export default function HomePage() {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { label: "Giá siêu rẻ", val: "under-2m", desc: "Dưới 2 triệu", col: "from-teal-50 to-teal-100 text-teal-900 border-teal-200" },
-            { label: "Sinh viên", val: "2m-4m", desc: "Từ 2M - 4 triệu", col: "from-blue-50 to-blue-100 text-blue-900 border-blue-200" },
-            { label: "Người đi làm", val: "4m-7m", desc: "Từ 4M - 7 triệu", col: "from-indigo-50 to-indigo-100 text-indigo-900 border-indigo-200" },
+            { label: "Sinh viên", val: "2m-4m", desc: "Từ 2 - 4 triệu", col: "from-blue-50 to-blue-100 text-blue-900 border-blue-200" },
+            { label: "Người đi làm", val: "4m-7m", desc: "Từ 4 - 7 triệu", col: "from-indigo-50 to-indigo-100 text-indigo-900 border-indigo-200" },
             { label: "Cao cấp / Studio", val: "above-7m", desc: "Trên 7 triệu", col: "from-purple-50 to-purple-100 text-purple-900 border-purple-200" },
             { label: "Tất cả tầm giá", val: "all", desc: "Lọc tất cả", col: "from-gray-50 to-gray-100 text-gray-900 border-gray-200" }
           ].map((bucket) => (

@@ -8,7 +8,10 @@ interface RoomCardProps {
   onViewDetails?: (room: BoardingRoom) => void;
   onEdit?: (room: BoardingRoom) => void;
   onDelete?: (id: string) => void;
+  onApprove?: (room: BoardingRoom) => void;
+  onReject?: (room: BoardingRoom) => void;
   isAdminMode?: boolean;
+  currentRole?: string;
 }
 
 export function formatVND(amount: number): string {
@@ -23,7 +26,10 @@ export default function RoomCard({
   onViewDetails,
   onEdit,
   onDelete,
+  onApprove,
+  onReject,
   isAdminMode = false,
+  currentRole = "user",
 }: RoomCardProps) {
   const statusColor = room.status === "còn phòng" 
     ? "bg-emerald-500 text-white" 
@@ -43,12 +49,25 @@ export default function RoomCard({
           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         
-        {/* Availability Badge */}
-        <span 
-          className={`absolute top-3 left-3 px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wider ${statusColor} shadow-md`}
-        >
-          {room.status}
-        </span>
+        {/* Badge Container */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+          <span 
+            className={`px-2.5 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider ${statusColor} shadow-md`}
+          >
+            {room.status}
+          </span>
+          {room.approvalStatus && room.approvalStatus !== "approved" && (
+            <span 
+              className={`px-2.5 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider shadow-md ${
+                room.approvalStatus === "pending"
+                  ? "bg-amber-500 text-white"
+                  : "bg-red-650 text-white"
+              }`}
+            >
+              {room.approvalStatus === "pending" ? "Chờ duyệt" : "Bị từ chối"}
+            </span>
+          )}
+        </div>
 
         {/* View Interested Counter overlay */}
         <span className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-md flex items-center gap-1 font-medium select-none">
@@ -128,10 +147,15 @@ export default function RoomCard({
               Năm: {room.buildYear}
             </span>
           </div>
+          {room.approvalStatus === "rejected" && room.rejectionReason && (
+            <div className="mt-2.5 p-2.5 bg-red-50/50 border border-red-100 rounded-xl text-[10px] text-red-700 font-medium leading-relaxed">
+              <strong>Lý do từ chối:</strong> {room.rejectionReason}
+            </div>
+          )}
         </div>
 
         {/* Footer Rating and Clicks Row */}
-        <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+        <div className="flex items-center justify-between pt-1 border-t border-gray-50 mt-3">
           <div className="flex items-center gap-1 text-amber-400">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
@@ -155,29 +179,55 @@ export default function RoomCard({
 
         {/* Admin Operational Actions Overlay */}
         {isAdminMode && (
-          <div className="mt-4 pt-3 border-t border-red-50 flex gap-2 w-full">
-            <button
-              id={`admin-edit-btn-${room.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit?.(room);
-              }}
-              className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs py-2 px-3 rounded-xl border border-amber-200 transition-colors cursor-pointer text-center"
-            >
-              Sửa phòng
-            </button>
-            <button
-              id={`admin-delete-btn-${room.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm("Bạn có chắc chắn muốn xoá phòng trọ này?")) {
-                  onDelete?.(room.id);
-                }
-              }}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2 px-3 rounded-xl border border-rose-200 transition-colors cursor-pointer text-center"
-            >
-              Xoá
-            </button>
+          <div className="mt-4 pt-3 border-t border-red-50 flex flex-col gap-2 w-full">
+            {currentRole === "admin" && room.approvalStatus === "pending" && (
+              <div className="flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onApprove?.(room);
+                  }}
+                  className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs py-2 px-3 rounded-xl border border-emerald-200 transition-colors cursor-pointer text-center"
+                >
+                  Duyệt tin
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject?.(room);
+                  }}
+                  className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs py-2 px-3 rounded-xl border border-red-200 transition-colors cursor-pointer text-center"
+                >
+                  Từ chối
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2 w-full">
+              <button
+                id={`admin-edit-btn-${room.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(room);
+                }}
+                className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs py-2 px-3 rounded-xl border border-amber-200 transition-colors cursor-pointer text-center"
+              >
+                Sửa phòng
+              </button>
+              <button
+                id={`admin-delete-btn-${room.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("Bạn có chắc chắn muốn xoá phòng trọ này?")) {
+                    onDelete?.(room.id);
+                  }
+                }}
+                className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2 px-3 rounded-xl border border-rose-200 transition-colors cursor-pointer text-center"
+              >
+                Xoá
+              </button>
+            </div>
           </div>
         )}
       </div>

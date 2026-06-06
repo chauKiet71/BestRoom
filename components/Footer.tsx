@@ -67,7 +67,7 @@ export default function Footer() {
                 onClick={() => handlePriceSelect("2m-4m")} 
                 className="hover:text-blue-400 transition-colors cursor-pointer text-left py-0.5 block bg-transparent border-none p-0 text-slate-300"
               >
-                Phòng trọ sinh viên tiện nghi (2M - 4 triệu)
+                Phòng trọ sinh viên tiện nghi (2 - 4 triệu)
               </button>
             </li>
             <li>
@@ -75,7 +75,7 @@ export default function Footer() {
                 onClick={() => handlePriceSelect("4m-7m")} 
                 className="hover:text-blue-400 transition-colors cursor-pointer text-left py-0.5 block bg-transparent border-none p-0 text-slate-300"
               >
-                Chung cư mini cao cấp (4M - 7 triệu)
+                Chung cư mini cao cấp (4 - 7 triệu)
               </button>
             </li>
             <li>
@@ -104,12 +104,6 @@ export default function Footer() {
             <li className="flex items-center gap-1.5">
               <MapPin className="h-3 w-3 text-blue-500 shrink-0" />
               <span>Thành phố Đà Nẵng</span>
-            </li>
-            <li className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span className="text-slate-300 font-semibold cursor-pointer hover:text-blue-400" onClick={handleGoAdmin}>
-                Quản lý hệ thống đăng phòng
-              </span>
             </li>
           </ul>
         </div>

@@ -49,9 +49,10 @@ export async function PUT(
 
     // Security Check
     const userRole = request.headers.get("x-user-role");
-    if (userRole !== "admin") {
+    const userId = request.headers.get("x-user-id");
+    if (userRole !== "admin" && userRole !== "user") {
       return NextResponse.json(
-        { error: "Quyền truy cập bị từ chối. Chỉ tài khoản Admin mới có quyền sửa đổi phòng!" },
+        { error: "Quyền truy cập bị từ chối. Bạn cần đăng nhập để sửa đổi phòng!" },
         { status: 403 }
       );
     }
@@ -64,12 +65,22 @@ export async function PUT(
       );
     }
 
-    const checkExist = await sql`SELECT id FROM rooms WHERE id = ${roomId}`;
+    const checkExist = await sql`SELECT id, owner_id FROM rooms WHERE id = ${roomId}`;
     if (checkExist.length === 0) {
       return NextResponse.json({ error: "Room not found to update." }, { status: 404 });
     }
 
+    // If user role is 'user', check ownership
+    if (userRole === "user" && checkExist[0].owner_id !== userId) {
+      return NextResponse.json(
+        { error: "Quyền truy cập bị từ chối. Bạn không phải là chủ sở hữu của phòng trọ này!" },
+        { status: 403 }
+      );
+    }
+
     const images = Array.isArray(updatedFields.images) ? updatedFields.images : [updatedFields.image].filter(Boolean);
+    const approvalStatus = userRole === "admin" ? (updatedFields.approvalStatus || "approved") : "pending";
+    const rejectionReason = userRole === "admin" ? (updatedFields.rejectionReason || null) : null;
 
     const rows = await sql`
       UPDATE rooms SET
@@ -101,7 +112,9 @@ export async function PUT(
         has_mezzanine = ${!!updatedFields.hasMezzanine},
         has_furniture = ${!!updatedFields.hasFurniture},
         electricity_price = ${Number(updatedFields.electricityPrice || 3500)},
-        district = ${updatedFields.district || ""}
+        district = ${updatedFields.district || ""},
+        approval_status = ${approvalStatus},
+        rejection_reason = ${rejectionReason}
       WHERE id = ${roomId}
       RETURNING *
     `;
@@ -126,9 +139,23 @@ export async function DELETE(
 
     // Security Check
     const userRole = request.headers.get("x-user-role");
-    if (userRole !== "admin") {
+    const userId = request.headers.get("x-user-id");
+    if (userRole !== "admin" && userRole !== "user") {
       return NextResponse.json(
-        { error: "Quyền truy cập bị từ chối. Chỉ tài khoản Admin mới có quyền xóa phòng!" },
+        { error: "Quyền truy cập bị từ chối. Bạn cần đăng nhập để xóa phòng!" },
+        { status: 403 }
+      );
+    }
+
+    const checkExist = await sql`SELECT id, owner_id FROM rooms WHERE id = ${roomId}`;
+    if (checkExist.length === 0) {
+      return NextResponse.json({ error: "Room not found to delete." }, { status: 404 });
+    }
+
+    // If user role is 'user', check ownership
+    if (userRole === "user" && checkExist[0].owner_id !== userId) {
+      return NextResponse.json(
+        { error: "Quyền truy cập bị từ chối. Bạn không phải là chủ sở hữu của phòng trọ này!" },
         { status: 403 }
       );
     }

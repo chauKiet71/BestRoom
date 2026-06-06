@@ -97,4 +97,8 @@ async function _initSchema(): Promise<void> {
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS has_mezzanine     BOOLEAN      DEFAULT FALSE`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS has_furniture      BOOLEAN      DEFAULT FALSE`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS electricity_price INT          DEFAULT 3500`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id          VARCHAR(50)  REFERENCES users(id) ON DELETE CASCADE`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS approval_status    VARCHAR(50)  DEFAULT 'approved'`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS rejection_reason   TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar             VARCHAR(255) DEFAULT ''`;
 }

@@ -97,7 +97,7 @@ export async function PUT(
         image = ${updatedFields.image || images[0] || ""},
         images = ${images},
         is_shared_owner = ${!!updatedFields.isSharedOwner},
-        rating = ${Number(updatedFields.rating || 5)},
+        rating = ${updatedFields.rating !== undefined ? Number(updatedFields.rating) : 0},
         has_wifi = ${updatedFields.hasWifi !== false},
         water_fee_type = ${updatedFields.waterFeeType || "có phí"},
         status = ${updatedFields.status || "còn phòng"},

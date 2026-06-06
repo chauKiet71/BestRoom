@@ -133,7 +133,7 @@ export default function AdminPage() {
     image: "",
     images: [],
     isSharedOwner: false,
-    rating: 5,
+    rating: 0,
     hasWifi: true,
     waterFeeType: "có phí",
     status: "còn phòng",
@@ -306,7 +306,7 @@ export default function AdminPage() {
         "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
       ],
       isSharedOwner: false,
-      rating: 5,
+      rating: 0,
       hasWifi: true,
       waterFeeType: "có phí",
       status: "còn phòng",
@@ -1256,22 +1256,6 @@ export default function AdminPage() {
                     onChange={(e) => setFormFields((prev) => ({ ...prev, description: e.target.value }))}
                     className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white focus:border-blue-500 resize-none"
                   ></textarea>
-                </div>
-
-                <div>
-                  <label className="text-xs text-gray-700 font-bold block mb-1">Xếp hạng uy tín - {formFields.rating} sao</label>
-                  <div className="flex gap-1.5 items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFormFields((prev) => ({ ...prev, rating: star }))}
-                        className="p-1 cursor-pointer bg-transparent border-none"
-                      >
-                        <Star className={`h-6 w-6 ${star <= (formFields.rating || 5) ? "fill-amber-400 text-amber-400" : "text-gray-200"}`} />
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 

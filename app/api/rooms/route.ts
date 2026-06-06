@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       id: generatedId,
       price: Number(newRoom.price),
       area: Number(newRoom.area || 0),
-      rating: Number(newRoom.rating || 5),
+      rating: newRoom.rating !== undefined ? Number(newRoom.rating) : 0,
       buildYear: Number(newRoom.buildYear || 2024),
       images: Array.isArray(newRoom.images) ? newRoom.images : [newRoom.image].filter(Boolean),
       interestedCount: 0,

@@ -52,7 +52,7 @@ async function _initSchema(): Promise<void> {
       image              TEXT,
       images             TEXT[],
       is_shared_owner    BOOLEAN      DEFAULT FALSE,
-      rating             INT          DEFAULT 5,
+      rating             INT          DEFAULT 0,
       has_wifi           BOOLEAN      DEFAULT TRUE,
       water_fee_type     VARCHAR(50)  DEFAULT 'có phí',
       status             VARCHAR(50)  DEFAULT 'còn phòng',

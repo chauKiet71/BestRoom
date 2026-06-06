@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Filter, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import FiltersSidebar from "@/components/FiltersSidebar";
 import RoomCard from "@/components/RoomCard";
@@ -31,6 +31,19 @@ export default function SearchPage() {
     viewRoomDetails,
     resetFilters,
   } = useApp();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
+
+  // Reset page to 1 when any filters are changed
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Filtered rooms logic
   const getFilteredRooms = () => {
@@ -139,6 +152,11 @@ export default function SearchPage() {
   };
 
   const filteredRooms = getFilteredRooms();
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredRooms.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedRooms = filteredRooms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   if (loading) {
     return (
@@ -236,33 +254,91 @@ export default function SearchPage() {
         </div>
 
         {/* ROOM RESULTS LIST GRID (Col span 3) */}
-        <div className="lg:col-span-3">
-          {filteredRooms.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRooms.map((room) => (
-                <RoomCard
-                  key={room.id}
-                  room={room}
-                  onViewDetails={viewRoomDetails}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Empty result state */
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-xs flex flex-col items-center justify-center space-y-4">
-              <div className="h-16 w-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
-                <Filter className="h-8 w-8" />
+        <div className="lg:col-span-3 flex flex-col justify-between h-full">
+          <div>
+            {paginatedRooms.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedRooms.map((room) => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    onViewDetails={viewRoomDetails}
+                  />
+                ))}
               </div>
-              <h4 className="text-base font-bold text-gray-900">Không tìm thấy phòng trọ nào đạt tiêu chuẩn</h4>
-              <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
-                Yêu cầu của bạn đang lọc bộ tối ưu quá cao. Hãy xóa bớt một vài bộ lọc tiện nghi hoặc mở rộng phân khúc khoảng giá để có nhiều kết quả tốt nhất.
-              </p>
+            ) : (
+              /* Empty result state */
+              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-xs flex flex-col items-center justify-center space-y-4">
+                <div className="h-16 w-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                  <Filter className="h-8 w-8" />
+                </div>
+                <h4 className="text-base font-bold text-gray-900">Không tìm thấy phòng trọ nào đạt tiêu chuẩn</h4>
+                <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
+                  Yêu cầu của bạn đang lọc bộ tối ưu quá cao. Hãy xóa bớt một vài bộ lọc tiện nghi hoặc mở rộng phân khúc khoảng giá để có nhiều kết quả tốt nhất.
+                </p>
+                <button
+                  id="empty-reset-filters-btn"
+                  onClick={resetFilters}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md cursor-pointer border-none"
+                >
+                  Làm mới bộ lọc (Xóa lọc)
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-10 flex items-center justify-center gap-2 border-t border-gray-100 pt-8">
               <button
-                id="empty-reset-filters-btn"
-                onClick={resetFilters}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md cursor-pointer border-none"
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed bg-white"
+                aria-label="Previous Page"
               >
-                Làm mới bộ lọc (Xóa lọc)
+                <ChevronLeft className="h-4.5 w-4.5" />
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  if (
+                    totalPages > 7 &&
+                    page !== 1 &&
+                    page !== totalPages &&
+                    Math.abs(page - currentPage) > 1
+                  ) {
+                    if (page === 2 && currentPage > 3) {
+                      return <span key="dots-start" className="text-gray-400 px-1 select-none">...</span>;
+                    }
+                    if (page === totalPages - 1 && currentPage < totalPages - 2) {
+                      return <span key="dots-end" className="text-gray-400 px-1 select-none">...</span>;
+                    }
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`h-10 w-10 flex items-center justify-center rounded-xl text-sm font-extrabold transition-all cursor-pointer border-none ${
+                        currentPage === page
+                          ? "bg-[#4781fd] text-white shadow-md shadow-blue-500/10"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed bg-white"
+                aria-label="Next Page"
+              >
+                <ChevronRight className="h-4.5 w-4.5" />
               </button>
             </div>
           )}

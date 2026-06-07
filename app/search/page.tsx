@@ -72,6 +72,15 @@ export default function SearchPage() {
         if (filters.priceRange === "above-7m" && p <= 7000000) return false;
       }
 
+      // 2.5. Area Range
+      if (filters.areaRange !== "all") {
+        const a = room.area;
+        if (filters.areaRange === "under-20" && a >= 20) return false;
+        if (filters.areaRange === "20-30" && (a < 20 || a > 30)) return false;
+        if (filters.areaRange === "30-45" && (a < 30 || a > 45)) return false;
+        if (filters.areaRange === "above-45" && a <= 45) return false;
+      }
+
       // 3. Address components
       if (filters.city && !matchLocation(room.city, filters.city)) return false;
       if (filters.district && !matchLocation(room.district, filters.district)) return false;
@@ -147,6 +156,12 @@ export default function SearchPage() {
         if (room.hasFurniture !== targetFurniture) return false;
       }
 
+      // 18. Air Conditioner (Máy lạnh)
+      if (filters.hasAirConditioner !== "all") {
+        const targetAC = filters.hasAirConditioner === "yes";
+        if (room.hasAirConditioner !== targetAC) return false;
+      }
+
       return true;
     });
   };
@@ -187,6 +202,12 @@ export default function SearchPage() {
             <span className="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-1 rounded-md border border-blue-100 flex items-center gap-1">
               Giá: {filters.priceRange}
               <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, priceRange: "all" }))} />
+            </span>
+          )}
+          {filters.areaRange !== "all" && (
+            <span className="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-1 rounded-md border border-blue-100 flex items-center gap-1">
+              Diện tích: {filters.areaRange === "under-20" ? "Dưới 20 m²" : filters.areaRange === "20-30" ? "20 - 30 m²" : filters.areaRange === "30-45" ? "30 - 45 m²" : "Trên 45 m²"}
+              <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, areaRange: "all" }))} />
             </span>
           )}
           {filters.city && (
@@ -241,6 +262,12 @@ export default function SearchPage() {
             <span className="text-[11px] bg-teal-50 text-teal-700 font-semibold px-2 py-1 rounded-md border border-teal-100 flex items-center gap-1">
               Nội thất: {filters.hasFurniture === "yes" ? "Có" : "Không"}
               <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, hasFurniture: "all" }))} />
+            </span>
+          )}
+          {filters.hasAirConditioner !== "all" && (
+            <span className="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-1 rounded-md border border-blue-100 flex items-center gap-1">
+              Máy lạnh: {filters.hasAirConditioner === "yes" ? "Có" : "Không"}
+              <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, hasAirConditioner: "all" }))} />
             </span>
           )}
         </div>

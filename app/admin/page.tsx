@@ -147,6 +147,7 @@ export default function AdminPage() {
     hasBalcony: false,
     hasMezzanine: false,
     hasFurniture: false,
+    hasAirConditioner: false,
     electricityPrice: 3500,
   });
 
@@ -320,6 +321,7 @@ export default function AdminPage() {
       hasBalcony: false,
       hasMezzanine: false,
       hasFurniture: false,
+      hasAirConditioner: false,
       electricityPrice: 3500,
     });
     setIsAdminModalOpen(true);
@@ -333,6 +335,7 @@ export default function AdminPage() {
       hasBalcony: room.hasBalcony || false,
       hasMezzanine: room.hasMezzanine || false,
       hasFurniture: room.hasFurniture || false,
+      hasAirConditioner: room.hasAirConditioner || false,
       electricityPrice: room.electricityPrice || 3500,
       district: room.district || "",
     });
@@ -950,6 +953,16 @@ export default function AdminPage() {
                       type="checkbox"
                       checked={formFields.hasFurniture}
                       onChange={(e) => setFormFields((prev) => ({ ...prev, hasFurniture: e.target.checked }))}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                    <span className="text-xs text-gray-600 font-semibold">Có máy lạnh</span>
+                    <input
+                      type="checkbox"
+                      checked={formFields.hasAirConditioner}
+                      onChange={(e) => setFormFields((prev) => ({ ...prev, hasAirConditioner: e.target.checked }))}
                       className="h-4 w-4 accent-blue-600"
                     />
                   </div>

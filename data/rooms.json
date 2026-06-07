@@ -30,6 +30,7 @@
     "maxPeople": 3,
     "hasElevator": true,
     "hasContract": true,
+    "hasAirConditioner": true,
     "interestedCount": 156,
     "createdAt": "2026-06-01T08:30:00Z"
   },
@@ -63,6 +64,7 @@
     "maxPeople": 2,
     "hasElevator": false,
     "hasContract": false,
+    "hasAirConditioner": false,
     "interestedCount": 98,
     "createdAt": "2026-06-03T14:15:00Z"
   },
@@ -96,6 +98,7 @@
     "maxPeople": 4,
     "hasElevator": true,
     "hasContract": true,
+    "hasAirConditioner": true,
     "interestedCount": 240,
     "createdAt": "2026-05-28T09:00:00Z"
   },
@@ -128,6 +131,7 @@
     "maxPeople": 8,
     "hasElevator": false,
     "hasContract": true,
+    "hasAirConditioner": true,
     "interestedCount": 35,
     "createdAt": "2026-06-02T11:20:00Z"
   },
@@ -160,6 +164,7 @@
     "maxPeople": 3,
     "hasElevator": false,
     "hasContract": true,
+    "hasAirConditioner": false,
     "interestedCount": 185,
     "createdAt": "2026-05-30T10:00:00Z"
   },
@@ -194,6 +199,7 @@
     "maxPeople": 2,
     "hasElevator": true,
     "hasContract": true,
+    "hasAirConditioner": true,
     "interestedCount": 310,
     "createdAt": "2026-05-20T16:45:00Z"
   }

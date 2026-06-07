@@ -23,6 +23,14 @@ export default function FiltersSidebar() {
     { label: "Trên 7 triệu", value: "above-7m" },
   ];
 
+  const areaRanges = [
+    { label: "Tất cả diện tích", value: "all" },
+    { label: "Dưới 20 m²", value: "under-20" },
+    { label: "Từ 20 - 30 m²", value: "20-30" },
+    { label: "Từ 30 - 45 m²", value: "30-45" },
+    { label: "Trên 45 m²", value: "above-45" },
+  ];
+
   const ratingOptions = [null, 5, 4, 3, 2, 1];
 
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -121,6 +129,28 @@ export default function FiltersSidebar() {
                   name="priceRangeRadio"
                   checked={filters.priceRange === range.value}
                   onChange={() => handleChange("priceRange", range.value)}
+                  className="accent-blue-600 h-4 w-4"
+                />
+                <span>{range.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* SECTION 2.5: AREA RANGE */}
+        <div>
+          <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider block mb-1.5">Khoảng Diện Tích</label>
+          <div className="grid grid-cols-1 gap-1">
+            {areaRanges.map((range) => (
+              <label 
+                key={range.value}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${filters.areaRange === range.value ? "bg-blue-50/60 font-medium text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
+              >
+                <input
+                  type="radio"
+                  name="areaRangeRadio"
+                  checked={filters.areaRange === range.value}
+                  onChange={() => handleChange("areaRange", range.value)}
                   className="accent-blue-600 h-4 w-4"
                 />
                 <span>{range.label}</span>
@@ -530,6 +560,27 @@ export default function FiltersSidebar() {
                     onClick={() => handleChange("hasFurniture", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
                       filters.hasFurniture === opt 
+                        ? "bg-blue-600 text-white font-semibold" 
+                        : "bg-white hover:bg-gray-50 text-gray-600"
+                    }`}
+                  >
+                    {opt === "all" ? "Tất cả" : opt === "yes" ? "Có" : "Không"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Máy lạnh */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600 font-medium">Máy lạnh</span>
+              <div className="inline-flex rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                {["all", "yes", "no"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleChange("hasAirConditioner", opt)}
+                    className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
+                      filters.hasAirConditioner === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}

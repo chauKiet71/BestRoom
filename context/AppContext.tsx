@@ -36,6 +36,7 @@ interface AppContextType {
 const INITIAL_FILTERS: FilterOptions = {
   searchQuery: "",
   priceRange: "all",
+  areaRange: "all",
   city: "",
   district: "",
   ward: "",
@@ -54,6 +55,7 @@ const INITIAL_FILTERS: FilterOptions = {
   hasBalcony: "all",
   hasMezzanine: "all",
   hasFurniture: "all",
+  hasAirConditioner: "all",
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

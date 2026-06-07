@@ -111,6 +111,7 @@ export async function PUT(
         has_balcony = ${!!updatedFields.hasBalcony},
         has_mezzanine = ${!!updatedFields.hasMezzanine},
         has_furniture = ${!!updatedFields.hasFurniture},
+        has_air_conditioner = ${!!updatedFields.hasAirConditioner},
         electricity_price = ${Number(updatedFields.electricityPrice || 3500)},
         district = ${updatedFields.district || ""},
         approval_status = ${approvalStatus},

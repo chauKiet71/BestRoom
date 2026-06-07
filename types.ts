@@ -28,6 +28,7 @@ export interface BoardingRoom {
   hasBalcony: boolean; // Ban công (true = có, false = không)
   hasMezzanine: boolean; // Gác (true = có, false = không)
   hasFurniture: boolean; // Nội thất (true = có, false = không)
+  hasAirConditioner: boolean; // Máy lạnh (true = có, false = không)
   electricityPrice: number; // Giá điện (VND/kWh)
   interestedCount: number; // Trọ được quan tâm (lượt click/view)
   ownerId?: string | null;
@@ -59,6 +60,7 @@ export interface Review {
 export interface FilterOptions {
   searchQuery: string;
   priceRange: string; // "all" | "under-2m" | "2m-4m" | "4m-7m" | "above-7m"
+  areaRange: string; // "all" | "under-20" | "20-30" | "30-45" | "above-45"
   city: string;
   district: string;
   ward: string;
@@ -77,4 +79,6 @@ export interface FilterOptions {
   hasBalcony: string; // "all" | "yes" | "no"
   hasMezzanine: string; // "all" | "yes" | "no"
   hasFurniture: string; // "all" | "yes" | "no"
+  hasAirConditioner: string; // "all" | "yes" | "no"
 }
+

@@ -142,6 +142,11 @@ export default function RoomCard({
                 Có nội thất
               </span>
             )}
+            {room.hasAirConditioner && (
+              <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100">
+                Có máy lạnh
+              </span>
+            )}
             <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-md bg-gray-50 text-gray-600 border border-gray-200 flex items-center gap-0.5 font-mono">
               <Calendar className="h-2.5 w-2.5" />
               Năm: {room.buildYear}

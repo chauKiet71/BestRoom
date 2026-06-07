@@ -30,6 +30,7 @@ export function mapRoomFromDb(row: any): any {
     hasBalcony:       !!row.has_balcony,
     hasMezzanine:     !!row.has_mezzanine,
     hasFurniture:     !!row.has_furniture,
+    hasAirConditioner: !!row.has_air_conditioner,
     electricityPrice: Number(row.electricity_price || 0),
     interestedCount:  Number(row.interested_count || 0),
     ownerId:          row.owner_id || null,

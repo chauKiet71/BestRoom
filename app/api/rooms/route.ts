@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       hasBalcony: !!newRoom.hasBalcony,
       hasMezzanine: !!newRoom.hasMezzanine,
       hasFurniture: !!newRoom.hasFurniture,
+      hasAirConditioner: !!newRoom.hasAirConditioner,
       electricityPrice: Number(newRoom.electricityPrice || 3500),
       district: newRoom.district || "",
       ownerId: userId || null,
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         contact_name, contact_phone, image, images, is_shared_owner, rating,
         has_wifi, water_fee_type, status, hours_type, build_year, has_parking,
         is_people_limited, max_people, has_elevator, has_contract, interested_count, created_at,
-        has_balcony, has_mezzanine, has_furniture, electricity_price, owner_id, approval_status
+        has_balcony, has_mezzanine, has_furniture, has_air_conditioner, electricity_price, owner_id, approval_status
       ) VALUES (
         ${preparedRoom.id},
         ${preparedRoom.title},
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         ${preparedRoom.hasBalcony},
         ${preparedRoom.hasMezzanine},
         ${preparedRoom.hasFurniture},
+        ${preparedRoom.hasAirConditioner},
         ${preparedRoom.electricityPrice},
         ${preparedRoom.ownerId},
         ${preparedRoom.approvalStatus}

@@ -277,6 +277,12 @@ export default function RoomDetailsModal() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-gray-50">
+                  <span className="text-gray-500">Máy lạnh:</span>
+                  <span className={`font-semibold ${selectedRoom.hasAirConditioner ? "text-blue-700 bg-blue-50" : "text-gray-400 bg-gray-50"} text-xs px-2.5 py-0.5 rounded-md`}>
+                    {selectedRoom.hasAirConditioner ? "Có máy lạnh" : "Không có máy lạnh"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-gray-50">
                   <span className="text-gray-500">Giá điện tiêu thụ:</span>
                   <span className="font-bold text-blue-700 bg-blue-50 text-xs px-2.5 py-0.5 rounded-md">
                     {selectedRoom.electricityPrice ? `${selectedRoom.electricityPrice.toLocaleString("vi-VN")} đ/kWh` : "Theo giá nhà nước"}

@@ -56,6 +56,7 @@ const matchLocation = (a: string, b: string): boolean => {
 const INITIAL_FILTERS: FilterOptions = {
   searchQuery: "",
   priceRange: "all",
+  areaRange: "all",
   city: "",
   district: "",
   ward: "",
@@ -73,7 +74,8 @@ const INITIAL_FILTERS: FilterOptions = {
   hasContract: "all",
   hasBalcony: "all",
   hasMezzanine: "all",
-  hasFurniture: "all"
+  hasFurniture: "all",
+  hasAirConditioner: "all"
 };
 
 export default function App() {
@@ -222,6 +224,7 @@ export default function App() {
     hasBalcony: false,
     hasMezzanine: false,
     hasFurniture: false,
+    hasAirConditioner: false,
     electricityPrice: 3500
   });
 
@@ -293,6 +296,15 @@ export default function App() {
         if (filters.priceRange === "2m-4m" && (p < 2000000 || p > 4000000)) return false;
         if (filters.priceRange === "4m-7m" && (p < 4000000 || p > 7000000)) return false;
         if (filters.priceRange === "above-7m" && p <= 7000000) return false;
+      }
+
+      // 2.5. Area Range
+      if (filters.areaRange !== "all") {
+        const a = room.area;
+        if (filters.areaRange === "under-20" && a >= 20) return false;
+        if (filters.areaRange === "20-30" && (a < 20 || a > 30)) return false;
+        if (filters.areaRange === "30-45" && (a < 30 || a > 45)) return false;
+        if (filters.areaRange === "above-45" && a <= 45) return false;
       }
 
       // 3. Address components
@@ -368,6 +380,12 @@ export default function App() {
       if (filters.hasFurniture !== "all") {
         const targetFurniture = filters.hasFurniture === "yes";
         if (room.hasFurniture !== targetFurniture) return false;
+      }
+
+      // 18. Air Conditioner (Máy lạnh)
+      if (filters.hasAirConditioner !== "all") {
+        const targetAC = filters.hasAirConditioner === "yes";
+        if (room.hasAirConditioner !== targetAC) return false;
       }
 
       return true;
@@ -535,6 +553,7 @@ export default function App() {
       hasBalcony: false,
       hasMezzanine: false,
       hasFurniture: false,
+      hasAirConditioner: false,
       electricityPrice: 3500
     });
     setIsAdminModalOpen(true);
@@ -549,6 +568,7 @@ export default function App() {
       hasBalcony: room.hasBalcony || false,
       hasMezzanine: room.hasMezzanine || false,
       hasFurniture: room.hasFurniture || false,
+      hasAirConditioner: room.hasAirConditioner || false,
       electricityPrice: room.electricityPrice || 3500,
       district: room.district || ""
     });
@@ -1250,6 +1270,13 @@ export default function App() {
                         {selectedRoom.hasFurniture ? "Đầy đủ nội thất" : "Chưa có nội thất"}
                       </span>
                     </div>
+                    {/* Item 13: Air Conditioner */}
+                    <div className="flex items-center justify-between py-1 border-b border-gray-50">
+                      <span className="text-gray-500">Máy lạnh:</span>
+                      <span className={`font-semibold ${selectedRoom.hasAirConditioner ? "text-blue-700 bg-blue-50" : "text-gray-400 bg-gray-50"} text-xs px-2.5 py-0.5 rounded-md`}>
+                        {selectedRoom.hasAirConditioner ? "Có máy lạnh" : "Không có máy lạnh"}
+                      </span>
+                    </div>
                     {/* Item 12: Electricity price */}
                     <div className="flex items-center justify-between py-1 border-b border-gray-50">
                       <span className="text-gray-500">Giá điện tiêu thụ:</span>
@@ -1752,6 +1779,17 @@ export default function App() {
                       type="checkbox"
                       checked={formFields.hasFurniture}
                       onChange={(e) => setFormFields(prev => ({ ...prev, hasFurniture: e.target.checked }))}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                  </div>
+
+                  {/* Row Air Conditioner */}
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                    <span className="text-xs text-gray-600 font-semibold">Có máy lạnh</span>
+                    <input
+                      type="checkbox"
+                      checked={formFields.hasAirConditioner}
+                      onChange={(e) => setFormFields(prev => ({ ...prev, hasAirConditioner: e.target.checked }))}
                       className="h-4 w-4 accent-blue-600"
                     />
                   </div>

@@ -17,7 +17,7 @@ export async function GET(
 
     // Query user by username (case-insensitive)
     const userRows = await sql`
-      SELECT id, username, email, phone, role, avatar 
+      SELECT id, username, email, phone, role, avatar, fullname 
       FROM users 
       WHERE LOWER(username) = LOWER(${decodeURIComponent(username)})
     `;
@@ -33,6 +33,7 @@ export async function GET(
       phone: userRows[0].phone,
       role: userRows[0].role,
       avatar: userRows[0].avatar || "",
+      fullname: userRows[0].fullname || "",
     };
 
     // Query all rooms posted by this user

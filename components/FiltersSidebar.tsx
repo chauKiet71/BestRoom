@@ -7,12 +7,26 @@ import { FilterOptions } from "@/types";
 
 export default function FiltersSidebar() {
   const { filters, setFilters, metadata, resetFilters } = useApp();
+  const [tempFilters, setTempFilters] = useState<FilterOptions>(filters);
+
+  // Sync tempFilters when global filters change (e.g. from home page actions or reset)
+  useEffect(() => {
+    setTempFilters(filters);
+  }, [filters]);
 
   const handleChange = (key: keyof FilterOptions, value: any) => {
-    setFilters((prev) => ({
+    setTempFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
+  };
+
+  const handleApply = () => {
+    setFilters(tempFilters);
+  };
+
+  const handleReset = () => {
+    resetFilters();
   };
 
   const priceRanges = [
@@ -70,20 +84,20 @@ export default function FiltersSidebar() {
   }, [selectedDistrictCode]);
 
   useEffect(() => {
-    if (!filters.city) {
+    if (!tempFilters.city) {
       setSelectedProvinceCode("");
       setSelectedDistrictCode("");
     }
-  }, [filters.city]);
+  }, [tempFilters.city]);
 
   useEffect(() => {
-    if (!filters.district) {
+    if (!tempFilters.district) {
       setSelectedDistrictCode("");
     }
-  }, [filters.district]);
+  }, [tempFilters.district]);
 
   return (
-    <div id="filters-container" className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs sticky top-[80px] max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+    <div id="filters-container" className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs lg:sticky lg:top-[80px] lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:custom-scrollbar">
       {/* Sidebar Header Title and Reset Actions */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
         <div className="flex items-center gap-2">
@@ -92,7 +106,7 @@ export default function FiltersSidebar() {
         </div>
         <button
           id="btn-reset-filters"
-          onClick={resetFilters}
+          onClick={handleReset}
           className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1 font-semibold hover:underline cursor-pointer bg-transparent border-none"
         >
           <RotateCcw className="h-3 w-3" />
@@ -109,7 +123,7 @@ export default function FiltersSidebar() {
             id="filter-search-name"
             type="text"
             placeholder="Nhập tên đường, phòng..."
-            value={filters.searchQuery}
+            value={tempFilters.searchQuery}
             onChange={(e) => handleChange("searchQuery", e.target.value)}
             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 bg-gray-50/50"
           />
@@ -122,12 +136,12 @@ export default function FiltersSidebar() {
             {priceRanges.map((range) => (
               <label 
                 key={range.value}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${filters.priceRange === range.value ? "bg-blue-50/60 font-medium text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${tempFilters.priceRange === range.value ? "bg-blue-50/60 font-medium text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
               >
                 <input
                   type="radio"
                   name="priceRangeRadio"
-                  checked={filters.priceRange === range.value}
+                  checked={tempFilters.priceRange === range.value}
                   onChange={() => handleChange("priceRange", range.value)}
                   className="accent-blue-600 h-4 w-4"
                 />
@@ -144,12 +158,12 @@ export default function FiltersSidebar() {
             {areaRanges.map((range) => (
               <label 
                 key={range.value}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${filters.areaRange === range.value ? "bg-blue-50/60 font-medium text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${tempFilters.areaRange === range.value ? "bg-blue-50/60 font-medium text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
               >
                 <input
                   type="radio"
                   name="areaRangeRadio"
-                  checked={filters.areaRange === range.value}
+                  checked={tempFilters.areaRange === range.value}
                   onChange={() => handleChange("areaRange", range.value)}
                   className="accent-blue-600 h-4 w-4"
                 />
@@ -176,7 +190,7 @@ export default function FiltersSidebar() {
                 setSelectedProvinceCode(code);
                 setSelectedDistrictCode("");
                 const province = provinces.find((p) => String(p.code) === code);
-                setFilters((prev) => ({
+                setTempFilters((prev) => ({
                   ...prev,
                   city: province ? province.name : "",
                   district: "",
@@ -202,7 +216,7 @@ export default function FiltersSidebar() {
                 const code = e.target.value;
                 setSelectedDistrictCode(code);
                 const district = districts.find((d) => String(d.code) === code);
-                setFilters((prev) => ({
+                setTempFilters((prev) => ({
                   ...prev,
                   district: district ? district.name : "",
                   ward: "",
@@ -221,12 +235,12 @@ export default function FiltersSidebar() {
             <label className="text-xs text-gray-500 mb-1 block">Phường / Xã</label>
             <select
               id="filter-ward"
-              value={filters.ward ? (wards.find((w) => w.name === filters.ward)?.code || "") : ""}
+              value={tempFilters.ward ? (wards.find((w) => w.name === tempFilters.ward)?.code || "") : ""}
               disabled={!selectedDistrictCode}
               onChange={(e) => {
                 const code = e.target.value;
                 const ward = wards.find((w) => String(w.code) === code);
-                setFilters((prev) => ({
+                setTempFilters((prev) => ({
                   ...prev,
                   ward: ward ? ward.name : "",
                 }));
@@ -244,7 +258,7 @@ export default function FiltersSidebar() {
             <label className="text-xs text-gray-500 mb-1 block">Tên Đường (Dữ liệu sẵn có)</label>
             <select
               id="filter-street"
-              value={filters.street}
+              value={tempFilters.street}
               onChange={(e) => handleChange("street", e.target.value)}
               className="w-full text-xs border border-gray-200 rounded-lg px-2 py-2 outline-none bg-white focus:border-blue-500"
             >
@@ -267,7 +281,7 @@ export default function FiltersSidebar() {
                 type="button"
                 onClick={() => handleChange("rating", star)}
                 className={`py-1.5 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1 transition-all ${
-                  filters.rating === star
+                  tempFilters.rating === star
                     ? "bg-amber-500 border-amber-600 text-white"
                     : "border-gray-200 hover:bg-gray-50 text-gray-600"
                 }`}
@@ -277,7 +291,7 @@ export default function FiltersSidebar() {
                 ) : (
                   <>
                     <span>{star}</span>
-                    <Star className={`h-3 w-3 ${filters.rating === star ? "fill-white text-white" : "fill-amber-400 text-amber-400"}`} />
+                    <Star className={`h-3 w-3 ${tempFilters.rating === star ? "fill-white text-white" : "fill-amber-400 text-amber-400"}`} />
                   </>
                 )}
               </button>
@@ -285,12 +299,12 @@ export default function FiltersSidebar() {
           </div>
         </div>
 
-        {/* SECTION 5: ROOM BUILDING AGE (THÂM NIÊN PHÒNG/NĂM XÂY DỰNG) */}
+        {/* SECTION 5: ROOM BUILDING AGE */}
         <div className="border-t border-gray-100 pt-4">
           <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider block mb-1.5">Năm xây dựng (Thâm Niên)</label>
           <select
             id="filter-build-year"
-            value={filters.buildYear}
+            value={tempFilters.buildYear}
             onChange={(e) => handleChange("buildYear", e.target.value)}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 outline-none bg-white focus:border-blue-500"
           >
@@ -328,7 +342,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("isSharedOwner", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.isSharedOwner === opt 
+                      tempFilters.isSharedOwner === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -349,7 +363,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasWifi", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasWifi === opt 
+                      tempFilters.hasWifi === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -370,7 +384,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("waterFeeType", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.waterFeeType === opt 
+                      tempFilters.waterFeeType === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -391,7 +405,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("status", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.status === opt 
+                      tempFilters.status === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -412,7 +426,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hoursType", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hoursType === opt 
+                      tempFilters.hoursType === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -433,7 +447,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasParking", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasParking === opt 
+                      tempFilters.hasParking === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -454,7 +468,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("isPeopleLimited", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.isPeopleLimited === opt 
+                      tempFilters.isPeopleLimited === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -475,7 +489,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasElevator", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasElevator === opt 
+                      tempFilters.hasElevator === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -496,7 +510,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasContract", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasContract === opt 
+                      tempFilters.hasContract === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -517,7 +531,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasBalcony", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasBalcony === opt 
+                      tempFilters.hasBalcony === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -538,7 +552,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasMezzanine", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasMezzanine === opt 
+                      tempFilters.hasMezzanine === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -559,7 +573,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasFurniture", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasFurniture === opt 
+                      tempFilters.hasFurniture === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -580,7 +594,7 @@ export default function FiltersSidebar() {
                     type="button"
                     onClick={() => handleChange("hasAirConditioner", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      filters.hasAirConditioner === opt 
+                      tempFilters.hasAirConditioner === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
@@ -592,6 +606,19 @@ export default function FiltersSidebar() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Button Lọc - Apply Action */}
+      <div className="mt-6 pt-4 border-t border-gray-100 flex gap-3">
+        <button
+          id="btn-apply-filters"
+          type="button"
+          onClick={handleApply}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm py-3 px-4 rounded-xl transition-all shadow-md shadow-blue-500/10 hover:shadow-blue-500/25 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer border-none"
+        >
+          <Filter className="h-4 w-4" />
+          <span>Lọc phòng trọ</span>
+        </button>
       </div>
     </div>
   );

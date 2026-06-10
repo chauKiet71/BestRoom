@@ -12,9 +12,9 @@ interface HeaderProps {
   onRegisterClick: () => void;
 }
 
-export default function Header({ 
-  onLoginClick, 
-  onRegisterClick 
+export default function Header({
+  onLoginClick,
+  onRegisterClick
 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -50,15 +50,15 @@ export default function Header({
     <header id="app-header" className="sticky top-0 z-45 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <div 
-          id="brand-logo" 
-          onClick={handleLogoClick} 
+        <div
+          id="brand-logo"
+          onClick={handleLogoClick}
           className="flex items-center gap-2.5 cursor-pointer group shrink-0"
         >
-          <img 
-            src="/logo.jpg" 
-            alt="BestRoom Logo" 
-            className="h-10 w-10 rounded-xl object-cover shadow-md shadow-blue-100 group-hover:scale-105 transition-all duration-300"
+          <img
+            src="/logo.jpg"
+            alt="BestRoom Logo"
+            className="h-10 w-10 rounded-xl object-cover shadow-blue-100 group-hover:scale-105 transition-all duration-300"
           />
           <div className="hidden xs:block">
             <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors">BestRoom</h1>
@@ -66,35 +66,7 @@ export default function Header({
           </div>
         </div>
 
-        {/* Tab Selection Navigation */}
-        <nav id="main-navigation" className="flex items-center gap-1 sm:gap-4 flex-1 justify-center sm:justify-start sm:pl-8">
-          <Link
-            id="nav-btn-home"
-            href="/"
-            onClick={resetFilters}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
-              pathname === "/"
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden md:inline">Trang Chủ</span>
-          </Link>
 
-          <Link
-            id="nav-btn-search"
-            href="/search"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
-              pathname === "/search"
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-          >
-            <Search className="h-4 w-4" />
-            <span>Tìm Kiếm</span>
-          </Link>
-        </nav>
 
         {/* User Account Session Controls & Hamburger Menu Toggle */}
         <div id="user-header-actions" className="flex items-center gap-2 shrink-0">
@@ -123,9 +95,8 @@ export default function Header({
                     <span className="block text-xs font-extrabold text-gray-800 max-w-[80px] truncate leading-none">
                       {currentUser.username}
                     </span>
-                    <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-                      currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
-                    } mt-0.5`}>
+                    <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
+                      } mt-0.5`}>
                       {currentUser.role}
                     </span>
                   </div>
@@ -197,19 +168,19 @@ export default function Header({
       {isMobileMenuOpen && mounted && createPortal(
         <div className="md:hidden fixed inset-0 z-50">
           {/* Backdrop Overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          
+
           {/* Drawer container */}
           <div className="absolute top-0 right-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col p-6 animate-slide-in-from-right z-50">
             {/* Header: Logo and Close button */}
             <div className="flex items-center justify-between pb-5 border-b border-gray-100 mb-6">
               <div className="flex items-center gap-2">
-                <img 
-                  src="/logo.jpg" 
-                  alt="BestRoom Logo" 
+                <img
+                  src="/logo.jpg"
+                  alt="BestRoom Logo"
                   className="h-8 w-8 rounded-lg object-cover"
                 />
                 <span className="font-bold text-gray-900 text-sm">BestRoom</span>
@@ -231,11 +202,10 @@ export default function Header({
                     resetFilters();
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    pathname === "/"
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${pathname === "/"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50"
+                    }`}
                 >
                   <Home className="h-4 w-4" />
                   <span>Trang Chủ</span>
@@ -243,11 +213,10 @@ export default function Header({
                 <Link
                   href="/search"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    pathname === "/search"
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${pathname === "/search"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50"
+                    }`}
                 >
                   <Search className="h-4 w-4" />
                   <span>Tìm Kiếm</span>
@@ -277,9 +246,8 @@ export default function Header({
                       <span className="block text-xs font-extrabold text-gray-800 truncate leading-none">
                         {currentUser.username}
                       </span>
-                      <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                        currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
-                      } mt-1.5`}>
+                      <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
+                        } mt-1.5`}>
                         {currentUser.role}
                       </span>
                     </div>

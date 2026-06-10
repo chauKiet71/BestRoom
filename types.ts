@@ -45,6 +45,7 @@ export interface User {
   phone: string;
   role: "user" | "admin";
   avatar?: string;
+  fullname?: string;
 }
 
 export interface Review {

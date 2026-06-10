@@ -31,8 +31,8 @@ export async function PUT(
     const body = await request.json();
     
     if (isSelfUpdate) {
-      // User is updating their own info: email, phone, avatar
-      const { email, phone, avatar } = body;
+      // User is updating their own info: email, phone, avatar, fullname
+      const { email, phone, avatar, fullname } = body;
       
       // Basic validation
       if (!email || !phone) {
@@ -58,9 +58,9 @@ export async function PUT(
 
       const rows = await sql`
         UPDATE users 
-        SET email = ${email}, phone = ${phone}, avatar = ${avatar || ''} 
+        SET email = ${email}, phone = ${phone}, avatar = ${avatar || ''}, fullname = ${fullname || ''} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar
+        RETURNING id, username, email, phone, role, avatar, fullname
       `;
 
       if (rows.length === 0) {
@@ -76,6 +76,7 @@ export async function PUT(
           phone: rows[0].phone,
           role: rows[0].role,
           avatar: rows[0].avatar || "",
+          fullname: rows[0].fullname || "",
         }
       });
 
@@ -93,7 +94,7 @@ export async function PUT(
         UPDATE users 
         SET role = ${role} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar
+        RETURNING id, username, email, phone, role, avatar, fullname
       `;
 
       if (rows.length === 0) {
@@ -109,6 +110,7 @@ export async function PUT(
           phone: rows[0].phone,
           role: rows[0].role,
           avatar: rows[0].avatar || "",
+          fullname: rows[0].fullname || "",
         }
       });
     }

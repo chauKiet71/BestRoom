@@ -43,7 +43,7 @@ export const userService = {
 
   async updateProfile(
     targetUserId: string,
-    data: { email: string; phone: string; avatar: string },
+    data: { email: string; phone: string; avatar: string; fullname?: string },
     userRole: string,
     userId: string
   ): Promise<{ success: boolean; user: User }> {

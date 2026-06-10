@@ -24,6 +24,7 @@ export default function UserProfilePage() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
+  const [editFullname, setEditFullname] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -33,6 +34,7 @@ export default function UserProfilePage() {
       setEditEmail(profileUser.email);
       setEditPhone(profileUser.phone);
       setEditAvatar(profileUser.avatar || "");
+      setEditFullname(profileUser.fullname || "");
     }
   }, [profileUser]);
 
@@ -85,6 +87,7 @@ export default function UserProfilePage() {
           email: editEmail,
           phone: editPhone,
           avatar: editAvatar,
+          fullname: editFullname,
         }),
       });
       
@@ -99,7 +102,8 @@ export default function UserProfilePage() {
           ...prev, 
           email: data.user.email, 
           phone: data.user.phone, 
-          avatar: data.user.avatar 
+          avatar: data.user.avatar,
+          fullname: data.user.fullname 
         } : null);
         
         const updatedUser = {
@@ -107,6 +111,7 @@ export default function UserProfilePage() {
           email: data.user.email,
           phone: data.user.phone,
           avatar: data.user.avatar,
+          fullname: data.user.fullname,
         };
         setCurrentUser(updatedUser);
         localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
@@ -228,9 +233,14 @@ export default function UserProfilePage() {
           
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none">
-                {profileUser.username}
-              </h2>
+              <div className="flex flex-col">
+                <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none">
+                  {profileUser.fullname || profileUser.username}
+                </h2>
+                {profileUser.fullname && (
+                  <span className="text-[11px] text-gray-400 font-semibold mt-1">@{profileUser.username}</span>
+                )}
+              </div>
               <span className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide rounded-md shadow-2xs ${
                 profileUser.role === "admin" 
                   ? "bg-amber-100 text-amber-850" 
@@ -274,6 +284,7 @@ export default function UserProfilePage() {
                 setEditEmail(profileUser.email);
                 setEditPhone(profileUser.phone);
                 setEditAvatar(profileUser.avatar || "");
+                setEditFullname(profileUser.fullname || "");
                 setSaveError(null);
                 setIsEditing(true);
               }}
@@ -376,6 +387,18 @@ export default function UserProfilePage() {
                 {editAvatar && (
                   <span className="text-[10px] text-gray-400 font-medium">Đã chọn ảnh đại diện</span>
                 )}
+              </div>
+
+              {/* Fullname Input */}
+              <div>
+                <label className="text-xs text-gray-700 font-bold block mb-1">Họ và tên</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  value={editFullname}
+                  onChange={(e) => setEditFullname(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white focus:border-blue-500"
+                />
               </div>
 
               {/* Email Input */}

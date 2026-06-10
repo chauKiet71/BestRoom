@@ -1,12 +1,47 @@
 import { apiFetch } from "./api";
-import { BoardingRoom } from "@/types";
+import { BoardingRoom, FilterOptions } from "@/types";
 
 export const roomService = {
-  async getRooms(userRole?: string, userId?: string): Promise<BoardingRoom[]> {
+  async getRooms(
+    userRole?: string,
+    userId?: string,
+    options?: {
+      paginated?: boolean;
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: string;
+      filters?: Partial<FilterOptions>;
+    }
+  ): Promise<any> {
     const headers: Record<string, string> = {};
     if (userRole) headers["x-user-role"] = userRole;
     if (userId) headers["x-user-id"] = userId;
-    return apiFetch("/api/rooms", { headers });
+
+    let url = "/api/rooms";
+    const queryParams: string[] = [];
+
+    if (options) {
+      if (options.paginated) queryParams.push("paginated=true");
+      if (options.page) queryParams.push(`page=${options.page}`);
+      if (options.limit) queryParams.push(`limit=${options.limit}`);
+      if (options.sortBy) queryParams.push(`sortBy=${options.sortBy}`);
+      if (options.sortOrder) queryParams.push(`sortOrder=${options.sortOrder}`);
+
+      if (options.filters) {
+        Object.entries(options.filters).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== "") {
+            queryParams.push(`${key}=${encodeURIComponent(String(value))}`);
+          }
+        });
+      }
+    }
+
+    if (queryParams.length > 0) {
+      url += "?" + queryParams.join("&");
+    }
+
+    return apiFetch(url, { headers });
   },
 
   async getRoom(id: string): Promise<BoardingRoom> {

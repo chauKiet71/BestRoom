@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT id, username, email, phone, role 
+      SELECT id, username, email, phone, role, avatar, fullname 
       FROM users 
       ORDER BY role DESC, username ASC
     `;
@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
       email: r.email,
       phone: r.phone,
       role: r.role,
+      avatar: r.avatar || "",
+      fullname: r.fullname || "",
     }));
 
     return NextResponse.json(users);

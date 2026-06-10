@@ -5,6 +5,8 @@ import { Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import FiltersSidebar from "@/components/FiltersSidebar";
 import RoomCard from "@/components/RoomCard";
+import { roomService } from "@/services/roomService";
+import { BoardingRoom } from "@/types";
 
 const cleanName = (name: string): string => {
   if (!name) return "";
@@ -24,156 +26,62 @@ const matchLocation = (a: string, b: string): boolean => {
 
 export default function SearchPage() {
   const {
-    rooms,
-    loading,
     filters,
     setFilters,
     viewRoomDetails,
     resetFilters,
+    currentUser,
   } = useApp();
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
+
+  const [searchResults, setSearchResults] = useState<BoardingRoom[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(true);
 
   // Reset page to 1 when any filters are changed
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
 
+  useEffect(() => {
+    let active = true;
+    const fetchRooms = async () => {
+      try {
+        setSearchLoading(true);
+        const res = await roomService.getRooms(currentUser?.role, currentUser?.id, {
+          paginated: true,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          filters
+        });
+        if (active) {
+          setSearchResults(res.rooms || []);
+          setTotalCount(res.totalCount || 0);
+          setTotalPages(res.totalPages || 0);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tìm kiếm phòng từ server:", err);
+      } finally {
+        if (active) {
+          setSearchLoading(false);
+        }
+      }
+    };
+    fetchRooms();
+    return () => {
+      active = false;
+    };
+  }, [filters, currentPage, currentUser]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Filtered rooms logic
-  const getFilteredRooms = () => {
-    return rooms.filter((room) => {
-      // Only show approved rooms in search view
-      if (room.approvalStatus !== "approved") return false;
-
-      // 1. Search Query (Title / description / Street name / Address)
-      if (filters.searchQuery) {
-        const q = filters.searchQuery.toLowerCase();
-        const matchesTitle = room.title.toLowerCase().includes(q);
-        const matchesDesc = room.description?.toLowerCase().includes(q) || false;
-        const matchesStreet = room.street?.toLowerCase().includes(q) || false;
-        const matchesAddress = room.addressDetailed?.toLowerCase().includes(q) || false;
-        if (!matchesTitle && !matchesDesc && !matchesStreet && !matchesAddress) {
-          return false;
-        }
-      }
-
-      // 2. Price Range
-      if (filters.priceRange !== "all") {
-        const p = room.price;
-        if (filters.priceRange === "under-2m" && p >= 2000000) return false;
-        if (filters.priceRange === "2m-4m" && (p < 2000000 || p > 4000000)) return false;
-        if (filters.priceRange === "4m-7m" && (p < 4000000 || p > 7000000)) return false;
-        if (filters.priceRange === "above-7m" && p <= 7000000) return false;
-      }
-
-      // 2.5. Area Range
-      if (filters.areaRange !== "all") {
-        const a = room.area;
-        if (filters.areaRange === "under-20" && a >= 20) return false;
-        if (filters.areaRange === "20-30" && (a < 20 || a > 30)) return false;
-        if (filters.areaRange === "30-45" && (a < 30 || a > 45)) return false;
-        if (filters.areaRange === "above-45" && a <= 45) return false;
-      }
-
-      // 3. Address components
-      if (filters.city && !matchLocation(room.city, filters.city)) return false;
-      if (filters.district && !matchLocation(room.district, filters.district)) return false;
-      if (filters.ward && !matchLocation(room.ward, filters.ward)) return false;
-      if (filters.street && !matchLocation(room.street, filters.street)) return false;
-
-      // 4. Shared Owner
-      if (filters.isSharedOwner !== "all") {
-        const targetShare = filters.isSharedOwner === "yes";
-        if (room.isSharedOwner !== targetShare) return false;
-      }
-
-      // 5. Min Rating
-      if (filters.rating !== null && room.rating < filters.rating) return false;
-
-      // 6. Wifi
-      if (filters.hasWifi !== "all") {
-        const targetWifi = filters.hasWifi === "yes";
-        if (room.hasWifi !== targetWifi) return false;
-      }
-
-      // 7. Water fee
-      if (filters.waterFeeType !== "all" && room.waterFeeType !== filters.waterFeeType) return false;
-
-      // 8. Status
-      if (filters.status !== "all" && room.status !== filters.status) return false;
-
-      // 9. Hours Type
-      if (filters.hoursType !== "all" && room.hoursType !== filters.hoursType) return false;
-
-      // 10. Build Year (Using string "all" or specific numeric years)
-      if (filters.buildYear !== "all" && room.buildYear.toString() !== filters.buildYear) return false;
-
-      // 11. Parking Space
-      if (filters.hasParking !== "all") {
-        const targetParking = filters.hasParking === "yes";
-        if (room.hasParking !== targetParking) return false;
-      }
-
-      // 12. Limit people
-      if (filters.isPeopleLimited !== "all") {
-        const targetLimit = filters.isPeopleLimited === "yes";
-        if (room.isPeopleLimited !== targetLimit) return false;
-      }
-
-      // 13. Elevator
-      if (filters.hasElevator !== "all") {
-        const targetElevator = filters.hasElevator === "yes";
-        if (room.hasElevator !== targetElevator) return false;
-      }
-
-      // 14. Contract
-      if (filters.hasContract !== "all") {
-        const targetContract = filters.hasContract === "yes";
-        if (room.hasContract !== targetContract) return false;
-      }
-
-      // 15. Balcony
-      if (filters.hasBalcony !== "all") {
-        const targetBalcony = filters.hasBalcony === "yes";
-        if (room.hasBalcony !== targetBalcony) return false;
-      }
-
-      // 16. Mezzanine (Gác)
-      if (filters.hasMezzanine !== "all") {
-        const targetMezzanine = filters.hasMezzanine === "yes";
-        if (room.hasMezzanine !== targetMezzanine) return false;
-      }
-
-      // 17. Furniture (Nội thất)
-      if (filters.hasFurniture !== "all") {
-        const targetFurniture = filters.hasFurniture === "yes";
-        if (room.hasFurniture !== targetFurniture) return false;
-      }
-
-      // 18. Air Conditioner (Máy lạnh)
-      if (filters.hasAirConditioner !== "all") {
-        const targetAC = filters.hasAirConditioner === "yes";
-        if (room.hasAirConditioner !== targetAC) return false;
-      }
-
-      return true;
-    });
-  };
-
-  const filteredRooms = getFilteredRooms();
-  
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredRooms.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedRooms = filteredRooms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  if (loading) {
+  if (searchLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center justify-center">
         <div className="relative flex items-center justify-center h-16 w-16 mb-4">
@@ -185,6 +93,9 @@ export default function SearchPage() {
     );
   }
 
+  const startIndex = totalCount > 0 ? (currentPage - 1) * ITEMS_PER_PAGE : 0;
+  const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+
   return (
     <div id="search-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       {/* Search Info Heading */}
@@ -192,7 +103,13 @@ export default function SearchPage() {
         <div>
           <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Khu Vực Tìm Kiếm Phòng Trọ</h2>
           <p className="text-xs md:text-sm text-gray-500 mt-1">
-            Hiển thị <span className="font-bold text-blue-600">{filteredRooms.length}</span> phòng trọ phù hợp với các tiêu chí của bạn.
+            {totalCount > 0 ? (
+              <>
+                Hiển thị từ <span className="font-bold text-blue-600">{startIndex + 1}</span> đến <span className="font-bold text-blue-600">{endIndex}</span> trong tổng số <span className="font-bold text-blue-600">{totalCount}</span> phòng trọ.
+              </>
+            ) : (
+              "Không tìm thấy phòng trọ nào đạt tiêu chuẩn."
+            )}
           </p>
         </div>
 
@@ -283,9 +200,9 @@ export default function SearchPage() {
         {/* ROOM RESULTS LIST GRID (Col span 3) */}
         <div className="lg:col-span-3 flex flex-col justify-between h-full">
           <div>
-            {paginatedRooms.length > 0 ? (
+            {searchResults.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedRooms.map((room) => (
+                {searchResults.map((room) => (
                   <RoomCard
                     key={room.id}
                     room={room}

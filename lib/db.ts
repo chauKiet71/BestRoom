@@ -103,4 +103,5 @@ async function _initSchema(): Promise<void> {
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS approval_status    VARCHAR(50)  DEFAULT 'approved'`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS rejection_reason   TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar             VARCHAR(255) DEFAULT ''`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS fullname           VARCHAR(255) DEFAULT ''`;
 }

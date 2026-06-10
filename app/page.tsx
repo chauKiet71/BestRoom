@@ -1,10 +1,34 @@
 "use client";
 
-import React from "react";
-import { Search, Sparkles, ChevronRight, ArrowRight, AlertCircle, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Sparkles, ChevronRight, ChevronLeft, ArrowRight, AlertCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import RoomCard from "@/components/RoomCard";
+
+const FALLBACK_BROKERS = [
+  { name: "BĐS Minh Anh150", count: 6, avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80", active: true },
+  { name: "Hảo Nhà Trọ Sạch Sẽ", count: 5, avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&h=120&q=80", active: false },
+  { name: "Ân Nhà Trọ Sạch Sẽ", count: 5, avatar: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=120&h=120&q=80", active: false },
+  { name: "Nam Khánh Land", count: 4, avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80", active: true },
+  { name: "Vy Villa & Room", count: 4, avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80", active: false },
+  { name: "Phòng Trọ Xanh", count: 3, avatar: "https://images.unsplash.com/photo-1463936575829-25148e1db1b8?auto=format&fit=crop&w=120&h=120&q=80", active: false },
+  { name: "BĐS Thuận Phát", count: 3, avatar: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=120&h=120&q=80", active: true },
+  { name: "Nhà Đẹp Sài Gòn", count: 3, avatar: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=120&h=120&q=80", active: false },
+  { name: "Minh Trí Homes", count: 2, avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80", active: false }
+];
+
+const FALLBACK_AVATARS = [
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=120&h=120&q=80",
+  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80"
+];
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,6 +43,42 @@ export default function HomePage() {
     resetFilters,
   } = useApp();
 
+  const [activeBrokerPage, setActiveBrokerPage] = useState(0);
+  const [brokers, setBrokers] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchTopBrokers() {
+      try {
+        const res = await fetch("/api/users/top");
+        if (res.ok) {
+          const data = await res.json();
+          setBrokers(data);
+        }
+      } catch (err) {
+        console.error("Error fetching top brokers:", err);
+      }
+    }
+    fetchTopBrokers();
+  }, []);
+
+  const processedBrokers = brokers.map((b, idx) => ({
+    name: b.fullname && b.fullname.trim() !== "" ? b.fullname : b.username,
+    count: b.room_count,
+    avatar: b.avatar && b.avatar.trim() !== "" ? b.avatar : FALLBACK_AVATARS[idx % FALLBACK_AVATARS.length],
+    active: idx < 3
+  }));
+
+  let finalBrokers = [...processedBrokers];
+  if (finalBrokers.length < 9) {
+    const needed = 9 - finalBrokers.length;
+    finalBrokers = [...finalBrokers, ...FALLBACK_BROKERS.slice(FALLBACK_BROKERS.length - needed)];
+  }
+
+  const brokerPages: any[][] = [];
+  for (let i = 0; i < finalBrokers.length; i += 3) {
+    brokerPages.push(finalBrokers.slice(i, i + 3));
+  }
+
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
     router.push("/search");
@@ -32,7 +92,22 @@ export default function HomePage() {
     router.push("/search");
   };
 
+  const handleSelectCity = (cityName: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      city: cityName,
+      district: "",
+      ward: "",
+      street: "",
+    }));
+    router.push("/search");
+  };
+
   const approvedRooms = rooms.filter((room) => room.approvalStatus === "approved");
+
+  const hcmcCount = approvedRooms.filter(r => r.city.toLowerCase().includes("hồ chí minh")).length;
+  const hnCount = approvedRooms.filter(r => r.city.toLowerCase().includes("hà nội")).length;
+  const ctCount = approvedRooms.filter(r => r.city.toLowerCase().includes("cần thơ")).length;
 
   // Section A: Newly posted rooms (sorted by date descending)
   const newlyPostedRooms = [...approvedRooms]
@@ -119,6 +194,146 @@ export default function HomePage() {
               </button>
             </div>
           </form>
+        </div>
+      </section>
+
+      {/* CITIES & BROKERS SECTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Cities */}
+          <div className="lg:col-span-2 flex flex-col justify-between">
+            <div className="mb-4">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 pb-2 border-b border-gray-100">
+                Phòng trọ theo khu vực
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 grow">
+              {/* TP. HCM Card */}
+              <div 
+                onClick={() => handleSelectCity("Hồ Chí Minh")}
+                className="sm:col-span-2 relative h-72 sm:h-auto min-h-[300px] rounded-2xl overflow-hidden cursor-pointer group shadow-sm border border-gray-100 flex flex-col justify-end"
+              >
+                <img 
+                  src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=800&q=80" 
+                  alt="Tp Hồ Chí Minh"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-103 transition-transform duration-500 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
+                <div className="relative z-10 p-6 text-white mt-auto">
+                  <h3 className="text-lg md:text-xl font-bold">Tp Hồ Chí Minh</h3>
+                  <p className="text-xs text-gray-200 mt-1 opacity-90">{(hcmcCount || 0) + 4200} tin đăng</p>
+                </div>
+              </div>
+
+              {/* Stacked Hà Nội & Cần Thơ */}
+              <div className="grid grid-cols-1 gap-4 sm:col-span-1">
+                {/* Hà Nội Card */}
+                <div 
+                  onClick={() => handleSelectCity("Hà Nội")}
+                  className="relative h-[142px] sm:h-auto rounded-2xl overflow-hidden cursor-pointer group shadow-sm border border-gray-100 flex flex-col justify-end"
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1509060464153-44667396260f?auto=format&fit=crop&w=800&q=80" 
+                    alt="Hà Nội"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-103 transition-transform duration-500 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
+                  <div className="relative z-10 p-4 text-white mt-auto">
+                    <h3 className="text-base font-bold">Hà Nội</h3>
+                    <p className="text-[11px] text-gray-200 mt-0.5 opacity-90">{(hnCount || 0) + 1300} tin đăng</p>
+                  </div>
+                </div>
+
+                {/* Cần Thơ Card */}
+                <div 
+                  onClick={() => handleSelectCity("Cần Thơ")}
+                  className="relative h-[142px] sm:h-auto rounded-2xl overflow-hidden cursor-pointer group shadow-sm border border-gray-100 flex flex-col justify-end"
+                >
+                  <img 
+                    src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80" 
+                    alt="Cần Thơ"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-103 transition-transform duration-500 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
+                  <div className="relative z-10 p-4 text-white mt-auto">
+                    <h3 className="text-base font-bold">Cần Thơ</h3>
+                    <p className="text-[11px] text-gray-200 mt-0.5 opacity-90">{(ctCount || 0) + 70} tin đăng</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Broker Card */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between h-full min-h-[360px]">
+              <div>
+                <h3 className="flex items-center justify-center gap-1.5 text-center font-bold text-gray-800 text-[17px] tracking-tight leading-snug">
+                  <span>🥇</span>
+                  <span>Top môi giới hoạt động tại Tp Hồ Chí Minh</span>
+                  <span>🥇</span>
+                </h3>
+                <p className="text-center text-gray-500 text-xs mt-2 font-medium leading-relaxed">
+                  Kết nối với môi giới có tin đăng phù hợp với bạn
+                </p>
+
+                <div className="space-y-4 mt-6">
+                  {brokerPages[activeBrokerPage] && brokerPages[activeBrokerPage].map((broker, idx) => (
+                    <div key={idx} className="flex items-center gap-3.5 p-1 rounded-2xl transition-all duration-200">
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100">
+                        <img 
+                          src={broker.avatar} 
+                          alt={broker.name} 
+                          className="w-full h-full object-cover"
+                        />
+                        {broker.active && (
+                          <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-800 text-sm hover:text-blue-600 transition-colors cursor-pointer">
+                          {broker.name}
+                        </span>
+                        <span className="text-xs text-gray-500 font-medium mt-0.5">
+                          {broker.count} tin đăng phù hợp
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
+                <button 
+                  type="button"
+                  onClick={() => setActiveBrokerPage((prev) => (prev > 0 ? prev - 1 : (brokerPages.length > 0 ? brokerPages.length - 1 : 0)))}
+                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all cursor-pointer border-none bg-transparent"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {brokerPages.map((_, index) => (
+                    <span 
+                      key={index}
+                      onClick={() => setActiveBrokerPage(index)}
+                      className={`h-1.5 w-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        activeBrokerPage === index ? "bg-amber-700 scale-125" : "bg-gray-200 hover:bg-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={() => setActiveBrokerPage((prev) => (prev < brokerPages.length - 1 ? prev + 1 : 0))}
+                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all cursor-pointer border-none bg-transparent"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

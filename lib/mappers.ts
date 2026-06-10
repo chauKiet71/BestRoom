@@ -67,5 +67,6 @@ export function mapUserFromDb(row: any): any {
     password: row.password,
     role:     row.role,
     avatar:   row.avatar || "",
+    fullname: row.fullname || "",
   };
 }

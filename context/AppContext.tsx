@@ -93,7 +93,11 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     try {
       setLoading(true);
       setError(null);
-      const roomsData = await roomService.getRooms(currentUser?.role, currentUser?.id);
+      const roomsData = await roomService.getRooms(
+        currentUser?.role,
+        currentUser?.id,
+        currentUser?.role === "admin" ? undefined : { limit: 20 }
+      );
       setRooms(roomsData);
 
       const metaData = await metaService.getMeta();

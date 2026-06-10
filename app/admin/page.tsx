@@ -267,7 +267,7 @@ export default function AdminPage() {
         if (data.success) {
           setUsersList((prev) => prev.filter((u) => u.id !== targetUserId));
           // Refresh room list since cascading delete occurred on db
-          const roomsData = await roomService.getRooms();
+          const roomsData = await roomService.getRooms(currentUser?.role, currentUser?.id);
           setRooms(roomsData);
         }
       } catch (err: any) {

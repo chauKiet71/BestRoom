@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       // Admin sees everything
     } else if (userRole === "user" && userId) {
       params.push(userId);
-      conditions.push(`(approval_status = 'approved' OR owner_id = $${params.length})`);
+      conditions.push(`(approval_status = 'approved' OR (owner_id = $${params.length} AND approval_status != 'rejected'))`);
     } else {
       conditions.push(`approval_status = 'approved'`);
     }

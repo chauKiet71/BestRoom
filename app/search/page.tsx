@@ -51,7 +51,7 @@ export default function SearchPage() {
     const fetchRooms = async () => {
       try {
         setSearchLoading(true);
-        const res = await roomService.getRooms(currentUser?.role, currentUser?.id, {
+        const res = await roomService.getRooms(undefined, undefined, {
           paginated: true,
           page: currentPage,
           limit: ITEMS_PER_PAGE,

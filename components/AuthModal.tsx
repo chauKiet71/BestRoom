@@ -166,7 +166,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white/80 backdrop-blur-md">
       <div
         id="auth-modal-card"
-        className={`relative grid w-full origin-center scale-75 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(37,99,235,0.16)] ${
+        className={`relative grid w-full origin-center scale-[0.825] md:scale-75 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(37,99,235,0.16)] ${
           isRegister ? "max-w-6xl md:grid-cols-[0.72fr_1fr]" : "max-w-5xl md:grid-cols-[0.86fr_1.14fr]"
         }`}
       >

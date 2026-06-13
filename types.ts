@@ -1,5 +1,9 @@
+export const ROOM_TYPE_OPTIONS = ["Phòng trọ", "Căn hộ mini", "Ký túc xá", "Ở ghép"] as const;
+export type RoomType = (typeof ROOM_TYPE_OPTIONS)[number];
+
 export interface BoardingRoom {
   id: string;
+  roomType: RoomType;
   title: string;
   description: string;
   price: number; // monthly rent in VND, e.g. 3500000
@@ -21,6 +25,7 @@ export interface BoardingRoom {
   hoursType: "tự do" | "cố định"; // Giờ giấc
   buildYear: number; // Thâm niên phòng (năm để chọn)
   hasParking: boolean; // Chỗ để xe (true = có, false = không)
+  parkingFeeType: "miễn phí" | "có phí"; // Bãi đậu xe máy
   isPeopleLimited: boolean; // Giới hạn người (true = có, false = không)
   maxPeople?: number; // optionally max people
   hasElevator: boolean; // Thang máy (true = có, false = không)
@@ -46,6 +51,9 @@ export interface User {
   role: "user" | "admin";
   avatar?: string;
   fullname?: string;
+  experienceYears?: string;
+  workingHours?: string;
+  postPermissionStatus?: "none" | "pending" | "approved" | "rejected";
 }
 
 export interface Review {
@@ -60,6 +68,7 @@ export interface Review {
 
 export interface FilterOptions {
   searchQuery: string;
+  roomType: string; // "all" | RoomType
   priceRange: string; // "all" | "under-2m" | "2m-4m" | "4m-7m" | "above-7m"
   areaRange: string; // "all" | "under-20" | "20-30" | "30-45" | "above-45"
   city: string;
@@ -74,6 +83,7 @@ export interface FilterOptions {
   hoursType: string; // "all" | "tự do" | "cố định"
   buildYear: string; // "all" | other string years
   hasParking: string; // "all" | "yes" | "no"
+  parkingFeeType: string; // "all" | "miễn phí" | "có phí"
   isPeopleLimited: string; // "all" | "yes" | "no"
   hasElevator: string; // "all" | "yes" | "no"
   hasContract: string; // "all" | "yes" | "no"

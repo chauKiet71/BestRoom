@@ -2,6 +2,7 @@ export function mapRoomFromDb(row: any): any {
   if (!row) return null;
   return {
     id:               row.id,
+    roomType:         row.room_type || "Phòng trọ",
     title:            row.title,
     description:      row.description,
     price:            Number(row.price),
@@ -23,6 +24,7 @@ export function mapRoomFromDb(row: any): any {
     hoursType:        row.hours_type,
     buildYear:        Number(row.build_year),
     hasParking:       !!row.has_parking,
+    parkingFeeType:   row.parking_fee_type || "miễn phí",
     isPeopleLimited:  !!row.is_people_limited,
     maxPeople:        row.max_people ? Number(row.max_people) : undefined,
     hasElevator:      !!row.has_elevator,
@@ -68,5 +70,8 @@ export function mapUserFromDb(row: any): any {
     role:     row.role,
     avatar:   row.avatar || "",
     fullname: row.fullname || "",
+    experienceYears: row.experience_years || "3 năm",
+    workingHours: row.working_hours || "8:00 - 21:00 (T2 - CN)",
+    postPermissionStatus: row.post_permission_status || "none",
   };
 }

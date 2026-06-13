@@ -84,6 +84,7 @@ export async function PUT(
 
     const rows = await sql`
       UPDATE rooms SET
+        room_type = ${updatedFields.roomType || "Phòng trọ"},
         title = ${updatedFields.title},
         description = ${updatedFields.description || ""},
         price = ${Number(updatedFields.price)},
@@ -104,6 +105,7 @@ export async function PUT(
         hours_type = ${updatedFields.hoursType || "tự do"},
         build_year = ${Number(updatedFields.buildYear || 2024)},
         has_parking = ${updatedFields.hasParking !== false},
+        parking_fee_type = ${updatedFields.parkingFeeType || "miễn phí"},
         is_people_limited = ${!!updatedFields.isPeopleLimited},
         max_people = ${updatedFields.maxPeople ? Number(updatedFields.maxPeople) : null},
         has_elevator = ${!!updatedFields.hasElevator},

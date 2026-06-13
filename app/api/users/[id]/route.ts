@@ -1,6 +1,39 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
+import { mapUserFromDb } from "@/lib/mappers";
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await ensureSchema();
+    const { id: userId } = await params;
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required." }, { status: 400 });
+    }
+
+    const rows = await sql`
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
+      FROM users
+      WHERE id = ${userId}
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
+    }
+
+    const { password: _password, ...user } = mapUserFromDb(rows[0]);
+    return NextResponse.json(user);
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: "Server error: " + err.message },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PUT(
   request: NextRequest,
@@ -32,7 +65,7 @@ export async function PUT(
     
     if (isSelfUpdate) {
       // User is updating their own info: email, phone, avatar, fullname
-      const { email, phone, avatar, fullname } = body;
+      const { email, phone, avatar, fullname, experienceYears, workingHours } = body;
       
       // Basic validation
       if (!email || !phone) {
@@ -58,27 +91,17 @@ export async function PUT(
 
       const rows = await sql`
         UPDATE users 
-        SET email = ${email}, phone = ${phone}, avatar = ${avatar || ''}, fullname = ${fullname || ''} 
+        SET email = ${email}, phone = ${phone}, avatar = ${avatar || ''}, fullname = ${fullname || ''}, experience_years = ${experienceYears || '3 năm'}, working_hours = ${workingHours || '8:00 - 21:00 (T2 - CN)'} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar, fullname
+        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
       `;
 
       if (rows.length === 0) {
         return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: rows[0].id,
-          username: rows[0].username,
-          email: rows[0].email,
-          phone: rows[0].phone,
-          role: rows[0].role,
-          avatar: rows[0].avatar || "",
-          fullname: rows[0].fullname || "",
-        }
-      });
+      const { password: _password, ...user } = mapUserFromDb(rows[0]);
+      return NextResponse.json({ success: true, user });
 
     } else {
       // Admin is updating user's role
@@ -94,25 +117,15 @@ export async function PUT(
         UPDATE users 
         SET role = ${role} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar, fullname
+        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
       `;
 
       if (rows.length === 0) {
         return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: rows[0].id,
-          username: rows[0].username,
-          email: rows[0].email,
-          phone: rows[0].phone,
-          role: rows[0].role,
-          avatar: rows[0].avatar || "",
-          fullname: rows[0].fullname || "",
-        }
-      });
+      const { password: _password, ...user } = mapUserFromDb(rows[0]);
+      return NextResponse.json({ success: true, user });
     }
   } catch (err: any) {
     return NextResponse.json(

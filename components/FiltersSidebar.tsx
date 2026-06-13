@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Star, RotateCcw, MapPin, Filter } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { FilterOptions } from "@/types";
+import { FilterOptions, ROOM_TYPE_OPTIONS } from "@/types";
 
 export default function FiltersSidebar() {
   const { filters, setFilters, metadata, resetFilters } = useApp();
@@ -97,7 +97,7 @@ export default function FiltersSidebar() {
   }, [tempFilters.district]);
 
   return (
-    <div id="filters-container" className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs lg:sticky lg:top-[80px] lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:custom-scrollbar">
+    <div id="filters-container" className="bg-white rounded-2xl border border-gray-100 p-6 shadow-xs lg:sticky lg:top-[80px] lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:custom-scrollbar">
       {/* Sidebar Header Title and Reset Actions */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
         <div className="flex items-center gap-2">
@@ -127,6 +127,20 @@ export default function FiltersSidebar() {
             onChange={(e) => handleChange("searchQuery", e.target.value)}
             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 bg-gray-50/50"
           />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider block mb-1.5">Loại phòng</label>
+          <select
+            value={tempFilters.roomType}
+            onChange={(e) => handleChange("roomType", e.target.value)}
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 bg-gray-50/50"
+          >
+            <option value="all">Tất cả loại phòng</option>
+            {ROOM_TYPE_OPTIONS.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
         </div>
 
         {/* SECTION 2: PRICE RANGE */}
@@ -437,22 +451,22 @@ export default function FiltersSidebar() {
               </div>
             </div>
 
-            {/* Chỗ để xe */}
+            {/* Phí bãi đậu xe */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 font-medium">Khu vực để xe</span>
+              <span className="text-xs text-gray-600 font-medium">Bãi đậu xe máy</span>
               <div className="inline-flex rounded-lg overflow-hidden border border-gray-200 shrink-0">
-                {["all", "yes", "no"].map((opt) => (
+                {["all", "miễn phí", "có phí"].map((opt) => (
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => handleChange("hasParking", opt)}
+                    onClick={() => handleChange("parkingFeeType", opt)}
                     className={`px-2 py-1 text-[11px] whitespace-nowrap transition-colors border-none cursor-pointer ${
-                      tempFilters.hasParking === opt 
+                      tempFilters.parkingFeeType === opt 
                         ? "bg-blue-600 text-white font-semibold" 
                         : "bg-white hover:bg-gray-50 text-gray-600"
                     }`}
                   >
-                    {opt === "all" ? "Tất cả" : opt === "yes" ? "Có" : "Không"}
+                    {opt === "all" ? "Tất cả" : opt}
                   </button>
                 ))}
               </div>

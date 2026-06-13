@@ -1,28 +1,37 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, ShieldCheck, User, LogIn, LogOut, ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Plus, User, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { userService } from "@/services/userService";
 
 interface HeaderProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
 }
 
-export default function Header({
-  onLoginClick,
-  onRegisterClick
-}: HeaderProps) {
+const navItems = [
+  { href: "/", label: "Trang chủ" },
+  { href: "/search", label: "Tìm phòng" },
+  { href: "/admin", label: "Đăng tin" },
+  // { href: "#pricing", label: "Bảng giá" },
+  { href: "/favorites", label: "Yêu thích" },
+];
+
+export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, logout, resetFilters } = useApp();
+  const { currentUser, setCurrentUser, logout, resetFilters } = useApp();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isRequestingPostPermission, setIsRequestingPostPermission] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const canPost = currentUser?.role === "admin" || currentUser?.postPermissionStatus === "approved";
+  const postButtonLabel = canPost ? "Đăng tin" : "Đăng tin miễn phí";
 
   useEffect(() => {
     setMounted(true);
@@ -36,274 +45,219 @@ export default function Header({
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogoClick = () => {
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    let cancelled = false;
+    const syncCurrentUser = async () => {
+      try {
+        const freshUser = await userService.getUser(currentUser.id);
+        if (cancelled) return;
+        if (
+          freshUser.postPermissionStatus !== currentUser.postPermissionStatus ||
+          freshUser.role !== currentUser.role
+        ) {
+          const updatedUser = { ...currentUser, ...freshUser };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
+        }
+      } catch (err) {
+        console.error("Không thể đồng bộ trạng thái tài khoản", err);
+      }
+    };
+
+    window.addEventListener("focus", syncCurrentUser);
+    const intervalId = currentUser.postPermissionStatus === "pending"
+      ? window.setInterval(syncCurrentUser, 10000)
+      : null;
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", syncCurrentUser);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [currentUser?.id, currentUser?.postPermissionStatus, currentUser?.role, setCurrentUser]);
+
+  const goHome = () => {
     resetFilters();
     router.push("/");
   };
 
+  const postRoom = async () => {
+    if (!currentUser) {
+      onRegisterClick();
+      return;
+    }
+
+    if (currentUser.role === "admin" || currentUser.postPermissionStatus === "approved") {
+      router.push(`/user/${currentUser.username}?edit&tab=listing`);
+      return;
+    }
+
+    if (currentUser.postPermissionStatus === "pending") {
+      alert("Yêu cầu đăng tin của bạn đang chờ admin duyệt.");
+      return;
+    }
+
+    try {
+      setIsRequestingPostPermission(true);
+      const data = await userService.updatePostPermission(currentUser.id, "request", currentUser.role, currentUser.id);
+      if (data.success) {
+        const updatedUser = { ...currentUser, ...data.user };
+        setCurrentUser(updatedUser);
+        localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
+        alert("Đã gửi yêu cầu đăng tin đến admin. Sau khi được duyệt, nút này sẽ chuyển thành Đăng tin.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Không thể gửi yêu cầu đăng tin lúc này.");
+    } finally {
+      setIsRequestingPostPermission(false);
+    }
+  };
+
   return (
-    <header id="app-header" className="sticky top-0 z-45 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-        {/* Brand Logo */}
-        <div
-          id="brand-logo"
-          onClick={handleLogoClick}
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
-        >
+    <header id="app-header" className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-[60px] max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <button onClick={goHome} className="group flex items-center gap-2 border-none bg-transparent p-0">
           <img
-            src="/logo.jpg"
-            alt="BestRoom Logo"
-            className="h-10 w-10 rounded-xl object-cover shadow-blue-100 group-hover:scale-105 transition-all duration-300"
+            src="/bestroom-logo.png"
+            alt="BestRoom"
+            className="h-11 w-auto object-contain transition duration-200 group-hover:scale-[1.02]"
           />
-          <div className="hidden xs:block">
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors">BestRoom</h1>
-            <span className="text-xs text-blue-600 font-medium tracking-wide font-mono">HỆ THỐNG PHÒNG TRỌ</span>
-          </div>
-        </div>
+        </button>
 
+        <nav className="hidden items-center gap-7 lg:flex">
+          {navItems.map((item) => {
+            const active = pathname === item.href;
+            if (item.href === "/admin") {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={postRoom}
+                  className={`border-b-2 bg-transparent px-1 py-5 text-sm font-extrabold transition ${
+                    active ? "border-blue-700 text-blue-700" : "border-transparent text-slate-800 hover:text-blue-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`border-b-2 px-1 py-5 text-sm font-extrabold transition ${
+                  active ? "border-blue-700 text-blue-700" : "border-transparent text-slate-800 hover:text-blue-700"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-
-        {/* User Account Session Controls & Hamburger Menu Toggle */}
-        <div id="user-header-actions" className="flex items-center gap-2 shrink-0">
-          {/* Desktop view (md and larger screens) */}
-          <div className="hidden md:flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 md:flex">
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100/80 border border-gray-100 rounded-2xl p-1.5 pl-1.5 pr-3 select-none cursor-pointer transition-all duration-200 text-left"
+                  onClick={() => setIsDropdownOpen((open) => !open)}
+                  className="flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-extrabold text-slate-800 hover:border-blue-300"
                 >
-                  {/* User Avatar Circle */}
-                  {currentUser.avatar ? (
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.username}
-                      className="h-8 w-8 rounded-xl object-cover shadow-sm shrink-0 border border-gray-105"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xs font-mono flex items-center justify-center shadow-sm shrink-0">
-                      {currentUser.username.substring(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="hidden sm:block text-left">
-                    <span className="block text-xs font-extrabold text-gray-800 max-w-[80px] truncate leading-none">
-                      {currentUser.username}
-                    </span>
-                    <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
-                      } mt-0.5`}>
-                      {currentUser.role}
-                    </span>
-                  </div>
-                  <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                  <User className="h-5 w-5" />
+                  {currentUser.username}
+                  <ChevronDown className={`h-4 w-4 transition ${isDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
-
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 transition-all">
-                    <Link
-                      href={`/user/${currentUser.username}`}
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-750 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                    >
-                      <User className="h-4 w-4 text-blue-600" />
-                      <span>Thông tin của tôi</span>
-                    </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-750 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                    >
-                      <ShieldCheck className="h-4 w-4 text-blue-600" />
-                      <span>{currentUser.role === "admin" ? "Trang Admin" : "Đăng & Quản Lý Phòng"}</span>
-                    </Link>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        logout();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer bg-transparent border-none text-left"
-                    >
-                      <LogOut className="h-4 w-4 text-red-500" />
-                      <span>Đăng xuất</span>
+                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-2 shadow-xl">
+                    <Link href={`/user/${currentUser.username}?edit`} className="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50">Thông tin của tôi</Link>                    {currentUser.role === "admin" ? (
+                      <Link href="/admin" className="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50">Quản lý tin đăng</Link>
+                    ) : (
+                      <Link href={`/user/${currentUser.username}?edit&tab=listing`} className="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-blue-50">Đăng tin phòng trọ</Link>
+                    )}
+                    <button onClick={logout} className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50">
+                      <LogOut className="h-4 w-4" /> Đăng xuất
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onLoginClick}
-                  className="inline-flex items-center justify-center px-4 py-2 hover:bg-gray-50 text-gray-700 rounded-xl font-bold text-xs transition-colors cursor-pointer bg-transparent border-none"
-                >
-                  Đăng nhập
-                </button>
-                <button
-                  onClick={onRegisterClick}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 cursor-pointer flex items-center gap-1 border-none"
-                >
-                  <span>Đăng ký</span>
-                </button>
-              </div>
+              <button onClick={onLoginClick} className="flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-extrabold text-slate-800 hover:border-blue-300">
+                <User className="h-5 w-5" />
+                Đăng nhập
+              </button>
             )}
+            <button onClick={postRoom} disabled={isRequestingPostPermission} className="flex h-9 items-center gap-2 rounded-md bg-[#ffc400] px-4 text-sm font-black text-slate-950 shadow hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70">
+              {isRequestingPostPermission ? "Đang gửi..." : postButtonLabel}
+              <Plus className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Mobile view (hamburger toggle icon, hidden on md+) */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden flex items-center justify-center p-2 rounded-xl text-gray-650 hover:bg-gray-100 transition-colors cursor-pointer bg-transparent border-none"
-            aria-label="Toggle Menu"
-          >
+          <button onClick={() => setIsMobileMenuOpen(true)} className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white lg:hidden" aria-label="Mở menu">
             <Menu className="h-6 w-6" />
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Slide-In Menu (sliding from right) */}
       {isMobileMenuOpen && mounted && createPortal(
-        <div className="md:hidden fixed inset-0 z-50">
-          {/* Backdrop Overlay */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
-
-          {/* Drawer container */}
-          <div className="absolute top-0 right-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col p-6 animate-slide-in-from-right z-50">
-            {/* Header: Logo and Close button */}
-            <div className="flex items-center justify-between pb-5 border-b border-gray-100 mb-6">
-              <div className="flex items-center gap-2">
-                <img
-                  src="/logo.jpg"
-                  alt="BestRoom Logo"
-                  className="h-8 w-8 rounded-lg object-cover"
-                />
-                <span className="font-bold text-gray-900 text-sm">BestRoom</span>
-              </div>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-gray-400 hover:text-gray-650 p-1 bg-transparent border-none cursor-pointer"
-              >
-                <X className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button className="absolute inset-0 bg-slate-950/50" onClick={() => setIsMobileMenuOpen(false)} aria-label="Đóng menu" />
+          <div className="absolute bottom-0 right-0 top-0 flex w-80 max-w-[86vw] flex-col bg-white p-5 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+              <img src="/bestroom-logo.png" alt="BestRoom" className="h-10 w-auto object-contain" />
+              <button onClick={() => setIsMobileMenuOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100">
+                <X className="h-5 w-5" />
               </button>
             </div>
-
-            {/* Navigation links */}
-            <div className="mb-8">
-              <div className="flex flex-col gap-2">
-                <Link
-                  href="/"
-                  onClick={() => {
-                    resetFilters();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${pathname === "/"
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                >
-                  <Home className="h-4 w-4" />
-                  <span>Trang Chủ</span>
-                </Link>
-                <Link
-                  href="/search"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${pathname === "/search"
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                >
-                  <Search className="h-4 w-4" />
-                  <span>Tìm Kiếm</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Session actions */}
-            <div className="mt-auto space-y-4 pt-6 border-t border-gray-100">
-              {currentUser ? (
-                <div className="space-y-4">
-                  {/* User Profile Card inside Drawer */}
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                    {currentUser.avatar ? (
-                      <img
-                        src={currentUser.avatar}
-                        alt={currentUser.username}
-                        className="h-10 w-10 rounded-xl object-cover border border-gray-150"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-sm font-mono flex items-center justify-center shadow-sm shrink-0">
-                        {currentUser.username.substring(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="text-left">
-                      <span className="block text-xs font-extrabold text-gray-800 truncate leading-none">
-                        {currentUser.username}
-                      </span>
-                      <span className={`inline-block text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${currentUser.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
-                        } mt-1.5`}>
-                        {currentUser.role}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      href={`/user/${currentUser.username}`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-gray-750 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-all"
-                    >
-                      <User className="h-4 w-4 text-blue-650" />
-                      <span>Thông tin của tôi</span>
-                    </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-gray-750 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-all"
-                    >
-                      <ShieldCheck className="h-4 w-4 text-blue-650" />
-                      <span>{currentUser.role === "admin" ? "Trang Admin" : "Đăng & Quản Lý Phòng"}</span>
-                    </Link>
+            <div className="flex flex-col gap-2">
+              {navItems.map((item) => {
+                if (item.href === "/admin") {
+                  return (
                     <button
+                      key={item.label}
+                      type="button"
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        logout();
+                        postRoom();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all cursor-pointer bg-transparent border-none text-left"
+                      className={`rounded-lg px-3 py-3 text-left text-sm font-extrabold ${pathname === item.href ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"}`}
                     >
-                      <LogOut className="h-4 w-4 text-red-500" />
-                      <span>Đăng xuất</span>
+                      {item.label}
                     </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2.5">
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onLoginClick();
-                    }}
-                    className="w-full py-3 hover:bg-gray-50 text-gray-750 border border-gray-200 rounded-xl font-bold text-xs transition-colors cursor-pointer bg-transparent"
+                  );
+                }
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`rounded-lg px-3 py-3 text-sm font-extrabold ${pathname === item.href ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"}`}
                   >
-                    Đăng nhập
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onRegisterClick();
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-md cursor-pointer border-none flex items-center justify-center gap-1.5"
-                  >
-                    <span>Đăng ký</span>
-                  </button>
-                </div>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
+              {currentUser && (
+                <Link
+                  href={`/user/${currentUser.username}?edit`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex h-11 items-center justify-center rounded-lg border border-slate-300 text-sm font-black text-slate-800"
+                >
+                  Thông tin của tôi
+                </Link>
               )}
+              {!currentUser && (
+                <button onClick={onLoginClick} className="h-11 rounded-lg border border-slate-300 text-sm font-black text-slate-800">Đăng nhập</button>
+              )}
+              <button onClick={postRoom} disabled={isRequestingPostPermission} className="h-11 rounded-lg bg-[#ffc400] text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-70">
+                {isRequestingPostPermission ? "Đang gửi..." : postButtonLabel}
+              </button>
             </div>
           </div>
         </div>,

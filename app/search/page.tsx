@@ -7,6 +7,7 @@ import FiltersSidebar from "@/components/FiltersSidebar";
 import RoomCard from "@/components/RoomCard";
 import { roomService } from "@/services/roomService";
 import { BoardingRoom } from "@/types";
+import PageLoader from "@/components/PageLoader";
 
 const cleanName = (name: string): string => {
   if (!name) return "";
@@ -23,6 +24,24 @@ const matchLocation = (a: string, b: string): boolean => {
   const cleanB = cleanName(b);
   return cleanA.includes(cleanB) || cleanB.includes(cleanA);
 };
+
+type PaginationItem = number | "dots-start" | "dots-end";
+
+function getPaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "dots-end", totalPages];
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [1, "dots-start", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, "dots-start", currentPage - 1, currentPage, currentPage + 1, "dots-end", totalPages];
+}
 
 export default function SearchPage() {
   const {
@@ -82,36 +101,17 @@ export default function SearchPage() {
   };
 
   if (searchLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center justify-center">
-        <div className="relative flex items-center justify-center h-16 w-16 mb-4">
-          <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-20"></div>
-          <div className="rounded-full h-10 w-10 bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">Trọ</div>
-        </div>
-        <p className="text-gray-500 font-medium animate-pulse text-sm">Đang nạp bộ lọc thông tin phòng...</p>
-      </div>
-    );
+    return <PageLoader text="Đang nạp bộ lọc thông tin phòng..." />;
   }
 
   const startIndex = totalCount > 0 ? (currentPage - 1) * ITEMS_PER_PAGE : 0;
   const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+  const paginationItems = getPaginationItems(currentPage, totalPages);
 
   return (
-    <div id="search-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div id="search-view-container" className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pb-8 animate-fade-in">
       {/* Search Info Heading */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-100 pb-4">
-        <div>
-          <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Khu Vực Tìm Kiếm Phòng Trọ</h2>
-          <p className="text-xs md:text-sm text-gray-500 mt-1">
-            {totalCount > 0 ? (
-              <>
-                Hiển thị từ <span className="font-bold text-blue-600">{startIndex + 1}</span> đến <span className="font-bold text-blue-600">{endIndex}</span> trong tổng số <span className="font-bold text-blue-600">{totalCount}</span> phòng trọ.
-              </>
-            ) : (
-              "Không tìm thấy phòng trọ nào đạt tiêu chuẩn."
-            )}
-          </p>
-        </div>
+      {/* <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-100 pb-4"> */}
 
         {/* Active filters summary */}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -119,6 +119,12 @@ export default function SearchPage() {
             <span className="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-1 rounded-md border border-blue-100 flex items-center gap-1">
               Giá: {filters.priceRange}
               <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, priceRange: "all" }))} />
+            </span>
+          )}
+          {filters.roomType !== "all" && (
+            <span className="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-1 rounded-md border border-indigo-100 flex items-center gap-1">
+              Loại phòng: {filters.roomType}
+              <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, roomType: "all" }))} />
             </span>
           )}
           {filters.areaRange !== "all" && (
@@ -188,25 +194,27 @@ export default function SearchPage() {
             </span>
           )}
         </div>
-      </div>
+      {/* </div> */}
 
       {/* Grid Layout: Sidebar Filter & Room Results */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[345px_minmax(0,1fr)]">
         {/* SIDEBAR FILTERS (Col span 1) */}
-        <div className="lg:col-span-1">
+        <div>
           <FiltersSidebar />
         </div>
 
         {/* ROOM RESULTS LIST GRID (Col span 3) */}
-        <div className="lg:col-span-3 flex flex-col justify-between h-full">
+        <div className="flex h-full flex-col justify-between">
           <div>
             {searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4">
                 {searchResults.map((room) => (
                   <RoomCard
                     key={room.id}
                     room={room}
                     onViewDetails={viewRoomDetails}
+                    titleLines={2}
+                    variant="searchList"
                   />
                 ))}
               </div>
@@ -244,33 +252,26 @@ export default function SearchPage() {
               </button>
 
               <div className="flex items-center gap-1.5">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  if (
-                    totalPages > 7 &&
-                    page !== 1 &&
-                    page !== totalPages &&
-                    Math.abs(page - currentPage) > 1
-                  ) {
-                    if (page === 2 && currentPage > 3) {
-                      return <span key="dots-start" className="text-gray-400 px-1 select-none">...</span>;
-                    }
-                    if (page === totalPages - 1 && currentPage < totalPages - 2) {
-                      return <span key="dots-end" className="text-gray-400 px-1 select-none">...</span>;
-                    }
-                    return null;
+                {paginationItems.map((item) => {
+                  if (typeof item === "string") {
+                    return (
+                      <span key={item} className="grid h-10 w-8 place-items-center text-sm font-black text-gray-400 select-none">
+                        ...
+                      </span>
+                    );
                   }
 
                   return (
                     <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
+                      key={item}
+                      onClick={() => handlePageChange(item)}
                       className={`h-10 w-10 flex items-center justify-center rounded-xl text-sm font-extrabold transition-all cursor-pointer border-none ${
-                        currentPage === page
+                        currentPage === item
                           ? "bg-[#4781fd] text-white shadow-md shadow-blue-500/10"
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
                     >
-                      {page}
+                      {item}
                     </button>
                   );
                 })}

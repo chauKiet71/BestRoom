@@ -17,21 +17,16 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT id, username, email, phone, role, avatar, fullname 
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status 
       FROM users 
       ORDER BY role DESC, username ASC
     `;
 
     // Map rows safely (excluding password hashes)
-    const users = rows.map((r) => ({
-      id: r.id,
-      username: r.username,
-      email: r.email,
-      phone: r.phone,
-      role: r.role,
-      avatar: r.avatar || "",
-      fullname: r.fullname || "",
-    }));
+    const users = rows.map((r) => {
+      const { password: _password, ...safeUser } = mapUserFromDb(r);
+      return safeUser;
+    });
 
     return NextResponse.json(users);
   } catch (err: any) {

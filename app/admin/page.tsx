@@ -1,12 +1,44 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, Plus, Trash2, X, ArrowRight, Star, UploadCloud, Loader2, Share2 } from "lucide-react";
+import {
+  ArrowRight,
+  Ban,
+  BarChart3,
+  Bell,
+  Box,
+  CheckCircle,
+  Clock,
+  Download,
+  Edit3,
+  Eye,
+  FileText,
+  Filter,
+  Home,
+  LayoutDashboard,
+  Loader2,
+  Menu,
+  MoreVertical,
+  Package,
+  Plus,
+  Search,
+  Settings,
+  Share2,
+  ShieldCheck,
+  Star,
+  Trash2,
+  UploadCloud,
+  UserRound,
+  Users,
+  X,
+  XCircle,
+} from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { BoardingRoom } from "@/types";
+import { BoardingRoom, ROOM_TYPE_OPTIONS } from "@/types";
 import { roomService } from "@/services/roomService";
 import { userService } from "@/services/userService";
 import RoomCard from "@/components/RoomCard";
+import PageLoader from "@/components/PageLoader";
 
 const cleanName = (name: string): string => {
   if (!name) return "";
@@ -20,6 +52,7 @@ const cleanName = (name: string): string => {
 export default function AdminPage() {
   const {
     currentUser,
+    setCurrentUser,
     setAuthModalMode,
     setIsAuthModalOpen,
     rooms,
@@ -44,6 +77,10 @@ export default function AdminPage() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [selectedOwnerFilter, setSelectedOwnerFilter] = useState<string>("all");
   const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
+  const [adminStatusFilter, setAdminStatusFilter] = useState("all");
+  const [adminTypeFilter, setAdminTypeFilter] = useState("all");
+  const [deleteTargetRoom, setDeleteTargetRoom] = useState<BoardingRoom | null>(null);
 
 
   // Admin form address dropdowns API states
@@ -120,6 +157,7 @@ export default function AdminPage() {
   // Admin Form Fields
   const [formFields, setFormFields] = useState<Partial<BoardingRoom>>({
     title: "",
+    roomType: "Phòng trọ",
     description: "",
     price: 3000000,
     area: 25,
@@ -140,6 +178,7 @@ export default function AdminPage() {
     hoursType: "tự do",
     buildYear: 2025,
     hasParking: true,
+    parkingFeeType: "miễn phí",
     isPeopleLimited: false,
     maxPeople: 2,
     hasElevator: false,
@@ -260,6 +299,31 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdatePostPermission = async (targetUser: any, action: "approve" | "reject") => {
+    try {
+      const data = await userService.updatePostPermission(targetUser.id, action, currentUser?.role || "", currentUser?.id || "");
+      if (data.success) {
+        setUsersList((prev) => prev.map((u) => u.id === targetUser.id ? { ...u, ...data.user } : u));
+      }
+    } catch (err: any) {
+      alert(err.message || "Không thể cập nhật quyền đăng tin.");
+    }
+  };
+
+  const handleRequestPostPermission = async () => {
+    if (!currentUser) return;
+    try {
+      const data = await userService.updatePostPermission(currentUser.id, "request", currentUser.role, currentUser.id);
+      if (data.success) {
+        const updatedUser = { ...currentUser, ...data.user };
+        setCurrentUser(updatedUser);
+        localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
+      }
+    } catch (err: any) {
+      alert(err.message || "Không thể gửi yêu cầu đăng tin.");
+    }
+  };
+
   const handleDeleteUser = async (targetUserId: string) => {
     if (confirm("CẢNH BÁO: Xoá người dùng này sẽ đồng thời xoá TOÀN BỘ bài đăng phòng trọ của họ. Bạn có chắc chắn muốn tiếp tục?")) {
       try {
@@ -287,10 +351,25 @@ export default function AdminPage() {
     }
   };
 
+  const handleRequestDeleteRoom = (id: string) => {
+    const room = rooms.find((item) => item.id === id);
+    if (room) {
+      setDeleteTargetRoom(room);
+    }
+  };
+
+  const handleConfirmDeleteRoom = async () => {
+    if (!deleteTargetRoom) return;
+    const roomId = deleteTargetRoom.id;
+    setDeleteTargetRoom(null);
+    await handleDeleteRoom(roomId);
+  };
+
   const handleOpenAddModal = () => {
     setEditingRoom(null);
     setFormFields({
       title: "",
+      roomType: "Phòng trọ",
       description: "",
       price: 2500000,
       area: 22,
@@ -314,6 +393,7 @@ export default function AdminPage() {
       hoursType: "tự do",
       buildYear: 2025,
       hasParking: true,
+      parkingFeeType: "miễn phí",
       isPeopleLimited: true,
       maxPeople: 3,
       hasElevator: false,
@@ -331,12 +411,14 @@ export default function AdminPage() {
     setEditingRoom(room);
     setFormFields({
       ...room,
+      roomType: room.roomType || "Phòng trọ",
       images: Array.isArray(room.images) ? [...room.images] : room.image ? [room.image] : [],
       hasBalcony: room.hasBalcony || false,
       hasMezzanine: room.hasMezzanine || false,
       hasFurniture: room.hasFurniture || false,
       hasAirConditioner: room.hasAirConditioner || false,
       electricityPrice: room.electricityPrice || 3500,
+      parkingFeeType: room.parkingFeeType || "miễn phí",
       district: room.district || "",
     });
     setIsAdminModalOpen(true);
@@ -416,27 +498,19 @@ export default function AdminPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center justify-center">
-        <div className="relative flex items-center justify-center h-16 w-16 mb-4">
-          <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-20"></div>
-          <div className="rounded-full h-10 w-10 bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">Trọ</div>
-        </div>
-        <p className="text-gray-500 font-medium animate-pulse text-sm">Đang tải trang quản trị...</p>
-      </div>
-    );
+    return <PageLoader text="Đang tải trang quản trị..." className="font-sans" />;
   }
 
   if (!currentUser) {
     return (
-      <div id="admin-locked-view" className="max-w-md mx-auto px-4 py-16 text-center space-y-6 flex-1 flex flex-col justify-center">
+      <div id="admin-locked-view" className="max-w-md mx-auto px-4 py-16 text-center space-y-6 flex-1 flex flex-col justify-center font-sans">
         <div className="mx-auto h-16 w-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-200">
           <ShieldCheck className="h-8 w-8" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-black text-gray-900 font-sans tracking-tight">Yêu Cầu Đăng Nhập</h2>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight">Yêu cầu đăng nhập</h2>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Để thực hiện đăng tin, sửa đổi nội dung và kiểm soát các hoạt động chi tiết phòng trọ của bạn, vui lòng đăng nhập hoặc tạo tài khoản mới.
+            Vui lòng đăng nhập bằng tài khoản admin để quản lí tin đăng, thành viên và duyệt nội dung trên hệ thống.
           </p>
         </div>
 
@@ -447,9 +521,23 @@ export default function AdminPage() {
           }}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer border-none"
         >
-          <span>Đăng Nhập Tài Khoản</span>
+          <span>Đăng nhập tài khoản</span>
           <ArrowRight className="h-4 w-4" />
         </button>
+      </div>
+    );
+  }
+
+  if (currentUser.role !== "admin") {
+    return (
+      <div id="admin-forbidden-view" className="mx-auto flex min-h-[calc(100vh-60px)] max-w-md flex-col justify-center px-4 py-16 text-center font-sans">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-600">
+          <ShieldCheck className="h-8 w-8" />
+        </div>
+        <h2 className="mt-6 text-2xl font-black text-blue-950">Chỉ admin mới được truy cập</h2>
+        <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+          Trang quản trị hệ thống chỉ dành cho tài khoản có vai trò admin. Nếu bạn muốn đăng tin phòng trọ, hãy dùng mục Đăng tin phòng trọ trong trang cá nhân.
+        </p>
       </div>
     );
   }
@@ -463,21 +551,118 @@ export default function AdminPage() {
     return room.ownerId === currentUser?.id;
   });
 
+  const ownerNameById = new Map(usersList.map((user) => [user.id, user.fullname || user.username]));
+  const approvedRooms = rooms.filter((room) => room.approvalStatus === "approved" || !room.approvalStatus);
+  const pendingRooms = rooms.filter((room) => room.approvalStatus === "pending");
+  const rejectedRooms = rooms.filter((room) => room.approvalStatus === "rejected");
+  const unavailableRooms = rooms.filter((room) => room.status === "hết phòng");
+  const filteredAdminRooms = displayedRooms.filter((room) => {
+    const query = adminSearchQuery.trim().toLowerCase();
+    const matchSearch =
+      !query ||
+      room.title.toLowerCase().includes(query) ||
+      room.district?.toLowerCase().includes(query) ||
+      room.city?.toLowerCase().includes(query) ||
+      (ownerNameById.get(room.ownerId || "") || room.contactName || "").toLowerCase().includes(query);
+    const matchStatus =
+      adminStatusFilter === "all" ||
+      (adminStatusFilter === "approved" && (room.approvalStatus === "approved" || !room.approvalStatus)) ||
+      room.approvalStatus === adminStatusFilter ||
+      room.status === adminStatusFilter;
+    const matchType =
+      adminTypeFilter === "all" ||
+      (room.roomType || "Phòng trọ") === adminTypeFilter;
+    return matchSearch && matchStatus && matchType;
+  });
+  const needsReviewRooms = [...pendingRooms, ...rejectedRooms].slice(0, 5);
+  const statusTotal = Math.max(rooms.length, 1);
+  const approvedPercent = Math.round((approvedRooms.length / statusTotal) * 100);
+  const pendingPercent = Math.round((pendingRooms.length / statusTotal) * 100);
+  const rejectedPercent = Math.round((rejectedRooms.length / statusTotal) * 100);
+  const unavailablePercent = Math.max(0, 100 - approvedPercent - pendingPercent - rejectedPercent);
+
   return (
-    <div id="admin-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <div id="admin-view-container" className="animate-fade-in bg-[#f6f9fd]">
+      <AdminListingsDashboard
+        currentUser={currentUser}
+        rooms={rooms}
+        usersList={usersList}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        selectedOwnerFilter={selectedOwnerFilter}
+        setSelectedOwnerFilter={setSelectedOwnerFilter}
+        adminSearchQuery={adminSearchQuery}
+        setAdminSearchQuery={setAdminSearchQuery}
+        adminStatusFilter={adminStatusFilter}
+        setAdminStatusFilter={setAdminStatusFilter}
+        adminTypeFilter={adminTypeFilter}
+        setAdminTypeFilter={setAdminTypeFilter}
+        displayedRooms={displayedRooms}
+        filteredAdminRooms={filteredAdminRooms}
+        approvedRooms={approvedRooms}
+        pendingRooms={pendingRooms}
+        rejectedRooms={rejectedRooms}
+        unavailableRooms={unavailableRooms}
+        needsReviewRooms={needsReviewRooms}
+        approvedPercent={approvedPercent}
+        pendingPercent={pendingPercent}
+        rejectedPercent={rejectedPercent}
+        unavailablePercent={unavailablePercent}
+        ownerNameById={ownerNameById}
+        isUsersLoading={isUsersLoading}
+        onViewRoom={viewRoomDetails}
+        onEditRoom={handleOpenEditModal}
+        onDeleteRoom={handleRequestDeleteRoom}
+        onApproveRoom={handleApproveRoom}
+        onRejectRoom={handleRejectRoom}
+        onAddRoom={handleOpenAddModal}
+        onToggleUserRole={handleToggleUserRole}
+        onDeleteUser={handleDeleteUser}
+        onUpdatePostPermission={handleUpdatePostPermission}
+      />
+      {deleteTargetRoom && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-600">
+              <Trash2 className="h-7 w-7" />
+            </div>
+            <h2 className="mt-4 text-xl font-black text-blue-950">Có chắc chắn muốn xóa không?</h2>
+            <p className="mt-2 line-clamp-2 text-sm font-semibold text-slate-500">
+              Tin đăng "{deleteTargetRoom.title}" sẽ bị xóa khỏi hệ thống.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetRoom(null)}
+                className="h-11 rounded-lg border border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteRoom}
+                className="h-11 rounded-lg bg-red-600 text-sm font-black text-white shadow-sm hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="hidden">
       {/* Header operations bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-5 mb-6 gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-gray-900 flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-blue-600" />
             {currentUser.role === "admin"
-              ? "Trang Quản Trị Hệ Thống Phòng Trọ (Admin)"
-              : "Đăng & Quản Lý Danh Sách Phòng Trọ"}
+              ? "Trang QuÃ¡ÂºÂ£n TrÃ¡Â»â€¹ HÃ¡Â»â€¡ ThÃ¡Â»â€˜ng PhÃƒÂ²ng TrÃ¡Â»Â (Admin)"
+              : "Ã„ÂÃ„Æ’ng & QuÃ¡ÂºÂ£n LÃƒÂ½ Danh SÃƒÂ¡ch PhÃƒÂ²ng TrÃ¡Â»Â"}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {currentUser.role === "admin"
-              ? "Thực hiện quản trị hệ thống, quản lý tài khoản thành viên, xoá bài đăng vi phạm hoặc lọc bài viết theo từng chủ trọ."
-              : "Đăng phòng trọ mới của bạn lên hệ thống, quản lý trạng thái còn phòng/hết phòng, và chỉnh sửa thông tin chi tiết."}
+              ? "ThÃ¡Â»Â±c hiÃ¡Â»â€¡n quÃ¡ÂºÂ£n trÃ¡Â»â€¹ hÃ¡Â»â€¡ thÃ¡Â»â€˜ng, quÃ¡ÂºÂ£n lÃƒÂ½ tÃƒÂ i khoÃ¡ÂºÂ£n thÃƒÂ nh viÃƒÂªn, xoÃƒÂ¡ bÃƒÂ i Ã„â€˜Ã„Æ’ng vi phÃ¡ÂºÂ¡m hoÃ¡ÂºÂ·c lÃ¡Â»Âc bÃƒÂ i viÃ¡ÂºÂ¿t theo tÃ¡Â»Â«ng chÃ¡Â»Â§ trÃ¡Â»Â."
+              : "Ã„ÂÃ„Æ’ng phÃƒÂ²ng trÃ¡Â»Â mÃ¡Â»â€ºi cÃ¡Â»Â§a bÃ¡ÂºÂ¡n lÃƒÂªn hÃ¡Â»â€¡ thÃ¡Â»â€˜ng, quÃ¡ÂºÂ£n lÃƒÂ½ trÃ¡ÂºÂ¡ng thÃƒÂ¡i cÃƒÂ²n phÃƒÂ²ng/hÃ¡ÂºÂ¿t phÃƒÂ²ng, vÃƒÂ  chÃ¡Â»â€°nh sÃ¡Â»Â­a thÃƒÂ´ng tin chi tiÃ¡ÂºÂ¿t."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
@@ -488,14 +673,14 @@ export default function AdminPage() {
               if (typeof window !== "undefined") {
                 const profileUrl = `${window.location.origin}/user/${encodeURIComponent(currentUser.username)}`;
                 navigator.clipboard.writeText(profileUrl)
-                  .then(() => alert("Đã sao chép liên kết trang cá nhân của bạn vào bộ nhớ tạm!"))
-                  .catch(() => alert("Không thể sao chép liên kết. URL của bạn: " + profileUrl));
+                  .then(() => alert("Ã„ÂÃƒÂ£ sao chÃƒÂ©p liÃƒÂªn kÃ¡ÂºÂ¿t trang cÃƒÂ¡ nhÃƒÂ¢n cÃ¡Â»Â§a bÃ¡ÂºÂ¡n vÃƒÂ o bÃ¡Â»â„¢ nhÃ¡Â»â€º tÃ¡ÂºÂ¡m!"))
+                  .catch(() => alert("KhÃƒÂ´ng thÃ¡Â»Æ’ sao chÃƒÂ©p liÃƒÂªn kÃ¡ÂºÂ¿t. URL cÃ¡Â»Â§a bÃ¡ÂºÂ¡n: " + profileUrl));
               }
             }}
             className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-750 font-bold text-xs py-3 px-4 rounded-xl transition-all duration-150 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer border-solid"
           >
             <Share2 className="h-4 w-4 text-blue-600" />
-            <span>Chia sẻ trang cá nhân</span>
+            <span>Chia sÃ¡ÂºÂ» trang cÃƒÂ¡ nhÃƒÂ¢n</span>
           </button>
 
           <button
@@ -504,7 +689,7 @@ export default function AdminPage() {
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 px-5 rounded-xl transition-all duration-150 shadow-md flex items-center justify-center gap-2 cursor-pointer border-none"
           >
             <Plus className="h-4 w-4" />
-            Đăng phòng trọ mới
+            Ã„ÂÃ„Æ’ng phÃƒÂ²ng trÃ¡Â»Â mÃ¡Â»â€ºi
           </button>
         </div>
       </div>
@@ -520,7 +705,7 @@ export default function AdminPage() {
                 : "border-transparent text-gray-500 hover:text-gray-900"
             }`}
           >
-            Quản Lý Phòng Trọ ({rooms.length})
+            QuÃ¡ÂºÂ£n LÃƒÂ½ PhÃƒÂ²ng TrÃ¡Â»Â ({rooms.length})
           </button>
           <button
             onClick={() => setActiveTab("users")}
@@ -530,7 +715,7 @@ export default function AdminPage() {
                 : "border-transparent text-gray-500 hover:text-gray-900"
             }`}
           >
-            Quản Lý Thành Viên ({usersList.length})
+            QuÃ¡ÂºÂ£n LÃƒÂ½ ThÃƒÂ nh ViÃƒÂªn ({usersList.length})
           </button>
         </div>
       )}
@@ -539,23 +724,23 @@ export default function AdminPage() {
       {currentUser.role === "admin" && activeTab === "rooms" && (
         <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 mb-6 animate-fade-in">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Lọc theo người đăng:</span>
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">LÃ¡Â»Âc theo ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã„Æ’ng:</span>
             <select
               value={selectedOwnerFilter}
               onChange={(e) => setSelectedOwnerFilter(e.target.value)}
               className="text-xs border border-gray-200 rounded-lg bg-white px-3 py-1.5 outline-none font-semibold text-slate-700 focus:border-blue-500"
             >
-              <option value="all">-- Tất cả bài đăng ({rooms.length}) --</option>
-              <option value="system">Hệ thống / Admin ({rooms.filter((r) => !r.ownerId).length})</option>
+              <option value="all">-- TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ bÃƒÂ i Ã„â€˜Ã„Æ’ng ({rooms.length}) --</option>
+              <option value="system">HÃ¡Â»â€¡ thÃ¡Â»â€˜ng / Admin ({rooms.filter((r) => !r.ownerId).length})</option>
               {usersList.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.username} ({user.role === "admin" ? "Admin" : "Chủ trọ"}) - {rooms.filter((r) => r.ownerId === user.id).length} bài đăng
+                  {user.username} ({user.role === "admin" ? "Admin" : "ChÃ¡Â»Â§ trÃ¡Â»Â"}) - {rooms.filter((r) => r.ownerId === user.id).length} bÃƒÂ i Ã„â€˜Ã„Æ’ng
                 </option>
               ))}
             </select>
           </div>
           <div className="text-xs text-slate-400 font-medium">
-            Hiển thị <span className="font-bold text-slate-750">{displayedRooms.length}</span> phòng trọ
+            HiÃ¡Â»Æ’n thÃ¡Â»â€¹ <span className="font-bold text-slate-750">{displayedRooms.length}</span> phÃƒÂ²ng trÃ¡Â»Â
           </div>
         </div>
       )}
@@ -573,7 +758,7 @@ export default function AdminPage() {
                   currentRole={currentUser.role}
                   onViewDetails={viewRoomDetails}
                   onEdit={handleOpenEditModal}
-                  onDelete={handleDeleteRoom}
+                  onDelete={handleRequestDeleteRoom}
                   onApprove={handleApproveRoom}
                   onReject={handleRejectRoom}
                 />
@@ -583,14 +768,14 @@ export default function AdminPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
               <p className="text-gray-400 text-sm">
                 {currentUser.role === "admin"
-                  ? "Không tìm thấy phòng trọ nào của người đăng này."
-                  : "Bạn chưa đăng phòng trọ nào trên hệ thống."}
+                  ? "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y phÃƒÂ²ng trÃ¡Â»Â nÃƒÂ o cÃ¡Â»Â§a ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã„Æ’ng nÃƒÂ y."
+                  : "BÃ¡ÂºÂ¡n chÃ†Â°a Ã„â€˜Ã„Æ’ng phÃƒÂ²ng trÃ¡Â»Â nÃƒÂ o trÃƒÂªn hÃ¡Â»â€¡ thÃ¡Â»â€˜ng."}
               </p>
               <button
                 onClick={handleOpenAddModal}
                 className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl text-center border-none cursor-pointer"
               >
-                Đăng phòng đầu tiên
+                Ã„ÂÃ„Æ’ng phÃƒÂ²ng Ã„â€˜Ã¡ÂºÂ§u tiÃƒÂªn
               </button>
             </div>
           )}
@@ -602,11 +787,11 @@ export default function AdminPage() {
         <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-xs animate-scale-up">
           <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
             <div>
-              <h3 className="text-sm sm:text-base font-black text-gray-900">Danh Sách Tài Khoản Thành Viên</h3>
-              <p className="text-[10px] text-gray-400 mt-0.5">Quản lý nâng cấp/hạ cấp vai trò thành viên hoặc xoá vĩnh viễn tài khoản.</p>
+              <h3 className="text-sm sm:text-base font-black text-gray-900">Danh SÃƒÂ¡ch TÃƒÂ i KhoÃ¡ÂºÂ£n ThÃƒÂ nh ViÃƒÂªn</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5">QuÃ¡ÂºÂ£n lÃƒÂ½ nÃƒÂ¢ng cÃ¡ÂºÂ¥p/hÃ¡ÂºÂ¡ cÃ¡ÂºÂ¥p vai trÃƒÂ² thÃƒÂ nh viÃƒÂªn hoÃ¡ÂºÂ·c xoÃƒÂ¡ vÃ„Â©nh viÃ¡Â»â€¦n tÃƒÂ i khoÃ¡ÂºÂ£n.</p>
             </div>
             <span className="text-xs text-gray-500 font-bold font-mono uppercase bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
-              Tổng số: {usersList.length}
+              TÃ¡Â»â€¢ng sÃ¡Â»â€˜: {usersList.length}
             </span>
           </div>
 
@@ -614,17 +799,17 @@ export default function AdminPage() {
             {isUsersLoading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
                 <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                <span className="text-xs text-gray-400 font-medium">Đang tải danh sách thành viên...</span>
+                <span className="text-xs text-gray-400 font-medium">Ã„Âang tÃ¡ÂºÂ£i danh sÃƒÂ¡ch thÃƒÂ nh viÃƒÂªn...</span>
               </div>
             ) : usersList.length > 0 ? (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-50 text-gray-500 font-bold uppercase border-b border-gray-100">
-                    <th className="px-6 py-3.5">Tên đăng nhập</th>
+                    <th className="px-6 py-3.5">TÃƒÂªn Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p</th>
                     <th className="px-6 py-3.5">Email</th>
-                    <th className="px-6 py-3.5">Số điện thoại</th>
-                    <th className="px-6 py-3.5">Vai trò</th>
-                    <th className="px-6 py-3.5 text-right">Thao tác</th>
+                    <th className="px-6 py-3.5">SÃ¡Â»â€˜ Ã„â€˜iÃ¡Â»â€¡n thoÃ¡ÂºÂ¡i</th>
+                    <th className="px-6 py-3.5">Vai trÃƒÂ²</th>
+                    <th className="px-6 py-3.5 text-right">Thao tÃƒÂ¡c</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -642,7 +827,7 @@ export default function AdminPage() {
                               ? "bg-amber-100 text-amber-850 hover:bg-amber-200 border-none"
                               : "bg-blue-50 text-blue-600 hover:bg-blue-150 border-none"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          title={user.id === currentUser?.id ? "Không thể tự thay đổi vai trò bản thân" : "Nhấp để thay đổi vai trò"}
+                          title={user.id === currentUser?.id ? "KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡Â»Â± thay Ã„â€˜Ã¡Â»â€¢i vai trÃƒÂ² bÃ¡ÂºÂ£n thÃƒÂ¢n" : "NhÃ¡ÂºÂ¥p Ã„â€˜Ã¡Â»Æ’ thay Ã„â€˜Ã¡Â»â€¢i vai trÃƒÂ²"}
                         >
                           {user.role}
                         </button>
@@ -652,7 +837,7 @@ export default function AdminPage() {
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={user.id === currentUser?.id}
                           className="text-red-500 hover:text-white hover:bg-red-600 p-1.5 rounded-xl transition-all border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={user.id === currentUser?.id ? "Không thể tự xoá tài khoản bản thân" : "Xoá tài khoản & toàn bộ bài đăng"}
+                          title={user.id === currentUser?.id ? "KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡Â»Â± xoÃƒÂ¡ tÃƒÂ i khoÃ¡ÂºÂ£n bÃ¡ÂºÂ£n thÃƒÂ¢n" : "XoÃƒÂ¡ tÃƒÂ i khoÃ¡ÂºÂ£n & toÃƒÂ n bÃ¡Â»â„¢ bÃƒÂ i Ã„â€˜Ã„Æ’ng"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -662,11 +847,13 @@ export default function AdminPage() {
                 </tbody>
               </table>
             ) : (
-              <div className="text-center py-12 text-gray-400 italic">Chưa có người dùng nào đăng ký trong hệ thống.</div>
+              <div className="text-center py-12 text-gray-400 italic">ChÃ†Â°a cÃƒÂ³ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng nÃƒÂ o Ã„â€˜Ã„Æ’ng kÃƒÂ½ trong hÃ¡Â»â€¡ thÃ¡Â»â€˜ng.</div>
             )}
           </div>
         </div>
       )}
+
+      </div>
 
       {/* ADMIN ADD/EDIT MODAL */}
       {isAdminModalOpen && (
@@ -675,7 +862,7 @@ export default function AdminPage() {
             <div className="px-6 py-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
               <div>
                 <h3 className="text-base sm:text-lg font-black text-gray-900">
-                  {editingRoom ? "Chỉnh Sửa Thông Tin Phòng Trọ" : "Thêm Phòng Trọ Mới Vào Hệ Thống"}
+                  {editingRoom ? "Chỉnh sửa Thông Tin Phòng Trọ" : "Thêm Phòng Trọ Mới Vào Hệ Thống"}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">Nhập đầy đủ thông tin bên dưới để đồng bộ cơ sở dữ liệu.</p>
               </div>
@@ -704,9 +891,23 @@ export default function AdminPage() {
                   />
                 </div>
 
+                <div>
+                  <label className="text-xs text-gray-700 font-bold block mb-1">Loại phòng *</label>
+                  <select
+                    required
+                    value={formFields.roomType || "Phòng trọ"}
+                    onChange={(e) => setFormFields((prev) => ({ ...prev, roomType: e.target.value as BoardingRoom["roomType"] }))}
+                    className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white focus:border-blue-500"
+                  >
+                    {ROOM_TYPE_OPTIONS.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-700 font-bold block mb-1">Giá Thuê / Tháng (VND) *</label>
+                    <label className="text-xs text-gray-700 font-bold block mb-1">Giá thuê / tháng (VND) *</label>
                     <input
                       type="number"
                       required
@@ -811,7 +1012,7 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-700 font-bold block mb-1">Tên Đường *</label>
+                    <label className="text-xs text-gray-700 font-bold block mb-1">Tên đường *</label>
                     <input
                       type="text"
                       required
@@ -837,7 +1038,7 @@ export default function AdminPage() {
 
               {/* Box 3: Amenities options */}
               <div className="space-y-4 pt-3 border-t border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">3. Tiện nghi & Quy chế phòng trọ</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">3. Tiện nghi & quy chế phòng trọ</span>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
                     <span className="text-xs text-gray-600 font-semibold">Kết nối Wifi miễn phí</span>
@@ -909,12 +1110,14 @@ export default function AdminPage() {
 
                   <div className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
                     <span className="text-xs text-gray-600 font-semibold">Bãi đỗ xe máy</span>
-                    <input
-                      type="checkbox"
-                      checked={formFields.hasParking}
-                      onChange={(e) => setFormFields((prev) => ({ ...prev, hasParking: e.target.checked }))}
-                      className="h-4 w-4 accent-blue-600"
-                    />
+                    <select
+                      value={formFields.parkingFeeType || "miễn phí"}
+                      onChange={(e) => setFormFields((prev) => ({ ...prev, hasParking: true, parkingFeeType: e.target.value as any }))}
+                      className="text-xs border border-gray-200 rounded-lg bg-white px-1 py-0.5 outline-none"
+                    >
+                      <option value="miễn phí">Miễn phí</option>
+                      <option value="có phí">Có phí</option>
+                    </select>
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
@@ -1016,7 +1219,7 @@ export default function AdminPage() {
 
               {/* Box 4: Images & contact */}
               <div className="space-y-4 pt-3 border-t border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">4. Ảnh đại diện & Liên hệ quản lý</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">4. Ảnh đại diện & liên hệ quản lý</span>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-700 font-bold block mb-1">Tên chủ nhà liên hệ</label>
@@ -1112,7 +1315,7 @@ export default function AdminPage() {
 
                   {uploadMainError && (
                     <div className="p-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl text-[10px] font-medium leading-relaxed">
-                      ⚠️ {uploadMainError}
+                      {uploadMainError}
                     </div>
                   )}
 
@@ -1203,7 +1406,7 @@ export default function AdminPage() {
 
                   {uploadSubError && (
                     <div className="p-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl text-[10px] font-medium leading-relaxed">
-                      ⚠️ {uploadSubError}
+                      {uploadSubError}
                     </div>
                   )}
 
@@ -1291,6 +1494,403 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AdminListingsDashboard({
+  currentUser,
+  rooms,
+  usersList,
+  activeTab,
+  setActiveTab,
+  selectedOwnerFilter,
+  setSelectedOwnerFilter,
+  adminSearchQuery,
+  setAdminSearchQuery,
+  adminStatusFilter,
+  setAdminStatusFilter,
+  adminTypeFilter,
+  setAdminTypeFilter,
+  filteredAdminRooms,
+  approvedRooms,
+  pendingRooms,
+  rejectedRooms,
+  unavailableRooms,
+  needsReviewRooms,
+  approvedPercent,
+  pendingPercent,
+  rejectedPercent,
+  unavailablePercent,
+  ownerNameById,
+  isUsersLoading,
+  onViewRoom,
+  onEditRoom,
+  onDeleteRoom,
+  onApproveRoom,
+  onRejectRoom,
+  onAddRoom,
+  onToggleUserRole,
+  onDeleteUser,
+  onUpdatePostPermission,
+}: any) {
+  const navItems = [
+    { icon: LayoutDashboard, label: "Tổng quan", tab: "rooms" },
+    { icon: Users, label: "Quản lí người dùng", tab: "users" },
+    { icon: FileText, label: "Quản lí tin đăng", tab: "rooms", active: true },
+    { icon: ShieldCheck, label: "Duyệt tin", tab: "rooms" },
+    { icon: Package, label: "Gói dịch vụ", tab: "rooms" },
+    { icon: BarChart3, label: "Báo cáo", tab: "rooms" },
+    { icon: Settings, label: "Cài đặt", tab: "rooms" },
+  ];
+
+  return (
+    <div className="grid min-h-[calc(100vh-60px)] font-sans lg:grid-cols-[220px_1fr]">
+      <aside className="hidden bg-gradient-to-b from-[#052f66] to-[#001f4d] text-white lg:flex lg:flex-col">
+        <div className="flex h-[74px] items-center gap-3 px-7">
+          <Home className="h-8 w-8 text-[#ffc400]" />
+          <span className="text-2xl font-black">Best<span className="text-[#ffc400]">Room</span></span>
+        </div>
+        <nav className="mt-10 space-y-2 px-4">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => currentUser.role === "admin" && setActiveTab(item.tab)}
+              className={`flex h-12 w-full items-center gap-4 rounded-lg px-4 text-sm font-bold transition ${
+                (item.active && activeTab === "rooms") || (item.tab === "users" && activeTab === "users")
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-950/20"
+                  : "text-blue-50/90 hover:bg-white/10"
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <button className="mx-5 mb-7 mt-auto flex h-12 items-center justify-between rounded-lg border border-white/25 px-4 text-sm font-bold text-white/95">
+          Trung tâm hỗ trợ
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </aside>
+
+      <section className="min-w-0">
+        <div className="flex h-[74px] items-center justify-between border-b border-slate-200 bg-white px-5 lg:px-8">
+          <div className="flex items-center gap-5">
+            <Menu className="h-6 w-6 text-blue-950" />
+            <div className="relative hidden w-[380px] md:block">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={adminSearchQuery}
+                onChange={(event) => setAdminSearchQuery(event.target.value)}
+                placeholder="Tìm kiếm nhanh..."
+                className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-14 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 py-1 text-xs font-black text-slate-500">Ctrl K</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Bell className="h-6 w-6 text-blue-950" />
+              <span className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-red-500 text-[10px] font-black text-white">12</span>
+            </div>
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-sm font-black text-blue-700">
+                {currentUser.username.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-black text-blue-950">{currentUser.username}</p>
+                <p className="text-xs font-semibold text-slate-500">Quản trị viên</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {activeTab === "rooms" ? (
+          <div className="p-5 lg:p-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-black text-blue-950">Quản lí tin đăng</h1>
+              <p className="mt-2 text-sm font-semibold text-slate-500">Theo dõi, kiểm duyệt và quản lí toàn bộ tin đăng trên hệ thống</p>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-4">
+              <AdminStatCard icon={FileText} label="Tổng tin đăng" value={rooms.length} tone="blue" delta="12.6%" />
+              <AdminStatCard icon={Eye} label="Đang hiển thị" value={approvedRooms.length} tone="green" delta="9.3%" />
+              <AdminStatCard icon={Clock} label="Chờ duyệt" value={pendingRooms.length} tone="amber" delta="8.7%" />
+              <AdminStatCard icon={XCircle} label="Đã từ chối" value={rejectedRooms.length} tone="red" delta="-5.4%" />
+            </div>
+
+            <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_260px]">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 p-4">
+                  <div className="relative min-w-[240px] flex-1">
+                    <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={adminSearchQuery}
+                      onChange={(event) => setAdminSearchQuery(event.target.value)}
+                      placeholder="Tìm kiếm tin đăng..."
+                      className="h-11 w-full rounded-lg border border-slate-200 pl-11 pr-3 text-sm font-semibold outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <select value={adminTypeFilter} onChange={(e) => setAdminTypeFilter(e.target.value)} className="h-11 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-blue-950">
+                    <option value="all">Loại phòng</option>
+                    {ROOM_TYPE_OPTIONS.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <select value={adminStatusFilter} onChange={(e) => setAdminStatusFilter(e.target.value)} className="h-11 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-blue-950">
+                    <option value="all">Trạng thái</option>
+                    <option value="approved">Đang hiển thị</option>
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="rejected">Bị từ chối</option>
+                    <option value="hết phòng">Hết hạn</option>
+                  </select>
+                  <button className="flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700">
+                    <Filter className="h-5 w-5" />
+                    Lọc
+                  </button>
+                  <button className="ml-auto flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-black text-blue-950 hover:bg-slate-50">
+                    <Download className="h-4 w-4" />
+                    Xuất dữ liệu
+                  </button>
+                  <button onClick={onAddRoom} className="flex h-11 items-center gap-2 rounded-lg bg-[#ffbd00] px-4 text-sm font-black text-blue-950 hover:bg-[#f2b200]">
+                    <Plus className="h-5 w-5" />
+                    Thêm tin đăng
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-left">
+                    <thead className="bg-slate-50 text-xs font-black text-slate-500">
+                      <tr>
+                        <th className="px-4 py-4">Ảnh</th>
+                        <th className="px-4 py-4">Tiêu đề tin</th>
+                        <th className="px-4 py-4">Người đăng</th>
+                        <th className="px-4 py-4">Giá</th>
+                        <th className="px-4 py-4">Khu vực</th>
+                        <th className="px-4 py-4">Ngày đăng</th>
+                        <th className="px-4 py-4">Trạng thái</th>
+                        <th className="px-4 py-4">Lượt xem</th>
+                        <th className="px-4 py-4 text-right">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredAdminRooms.slice(0, 10).map((room: BoardingRoom) => (
+                        <tr key={room.id} className="hover:bg-slate-50/70">
+                          <td className="px-4 py-4">
+                            <img src={room.image || room.images?.[0] || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=300&q=80"} alt={room.title} className="h-16 w-16 rounded-lg object-cover" referrerPolicy="no-referrer" />
+                          </td>
+                          <td className="max-w-[230px] px-4 py-4 text-sm font-black leading-6 text-blue-950">{room.title}</td>
+                          <td className="px-4 py-4 text-sm font-semibold text-slate-600">{ownerNameById.get(room.ownerId || "") || room.contactName || currentUser.username}</td>
+                          <td className="px-4 py-4 text-sm font-black text-blue-950">{room.price.toLocaleString("vi-VN")} đ</td>
+                          <td className="px-4 py-4 text-sm font-semibold text-slate-600">{room.district || room.city}</td>
+                          <td className="px-4 py-4 text-sm font-semibold text-slate-600">{new Date(room.createdAt).toLocaleDateString("vi-VN")}</td>
+                          <td className="px-4 py-4"><AdminStatusBadge room={room} /></td>
+                          <td className="px-4 py-4 text-sm font-black text-slate-700">{room.interestedCount || 0}</td>
+                          <td className="px-4 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => onEditRoom(room)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-blue-950 hover:bg-blue-50"><Eye className="h-4 w-4" /></button>
+                              {currentUser.role === "admin" && room.approvalStatus === "pending" && (
+                                <button onClick={() => onApproveRoom(room)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50"><CheckCircle className="h-4 w-4" /></button>
+                              )}
+                              {currentUser.role === "admin" && room.approvalStatus !== "rejected" && (
+                                <button onClick={() => onRejectRoom(room)} className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 text-red-500 hover:bg-red-50"><Ban className="h-4 w-4" /></button>
+                              )}
+                              <button onClick={() => onDeleteRoom(room.id)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600"><MoreVertical className="h-4 w-4" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 text-sm font-semibold text-slate-500">
+                  <span>Hiển thị 1 - {Math.min(filteredAdminRooms.length, 10)} trên {filteredAdminRooms.length} tin đăng</span>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((page) => (
+                      <button key={page} className={`grid h-9 w-9 place-items-center rounded-lg border text-sm font-black ${page === 1 ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 text-blue-950"}`}>{page}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <aside className="space-y-5">
+                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="mb-4 text-lg font-black text-blue-950">Phân bổ trạng thái tin đăng</h2>
+                  <div className="mx-auto grid h-40 w-40 place-items-center rounded-full" style={{ background: `conic-gradient(#22c55e 0 ${approvedPercent}%, #f59e0b ${approvedPercent}% ${approvedPercent + pendingPercent}%, #ef4444 ${approvedPercent + pendingPercent}% ${approvedPercent + pendingPercent + rejectedPercent}%, #cbd5e1 ${approvedPercent + pendingPercent + rejectedPercent}% 100%)` }}>
+                    <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center">
+                      <strong className="block text-xl font-black text-blue-950">{rooms.length}</strong>
+                      <span className="text-xs font-semibold text-slate-500">Tổng</span>
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-3 text-sm font-semibold text-slate-600">
+                    <Legend color="bg-emerald-500" label="Đang hiển thị" value={`${approvedRooms.length} (${approvedPercent}%)`} />
+                    <Legend color="bg-amber-500" label="Chờ duyệt" value={`${pendingRooms.length} (${pendingPercent}%)`} />
+                    <Legend color="bg-red-500" label="Bị từ chối" value={`${rejectedRooms.length} (${rejectedPercent}%)`} />
+                    <Legend color="bg-slate-300" label="Hết hạn" value={`${unavailableRooms.length} (${unavailablePercent}%)`} />
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-lg font-black text-blue-950">Tin cần xử lý</h2>
+                    <button className="text-sm font-black text-blue-600">Xem tất cả</button>
+                  </div>
+                  <div className="space-y-3">
+                    {(needsReviewRooms.length ? needsReviewRooms : filteredAdminRooms.slice(0, 5)).map((room: BoardingRoom, index: number) => (
+                      <div key={room.id} className="flex gap-3 border-b border-slate-100 pb-3 last:border-b-0">
+                        <img src={room.image || room.images?.[0] || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=200&q=80"} alt={room.title} className="h-12 w-12 rounded-lg object-cover" referrerPolicy="no-referrer" />
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-xs font-black text-blue-950">{room.title}</p>
+                          <span className={`mt-1 inline-block rounded px-2 py-0.5 text-[10px] font-black ${room.approvalStatus === "rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>
+                            {room.approvalStatus === "rejected" ? "Bị từ chối" : "Chờ duyệt"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-400">{index + 2} giờ trước</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        ) : (
+          <AdminUsersPanel currentUser={currentUser} usersList={usersList} isUsersLoading={isUsersLoading} onToggleUserRole={onToggleUserRole} onDeleteUser={onDeleteUser} onUpdatePostPermission={onUpdatePostPermission} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AdminStatCard({ icon: Icon, label, value, tone, delta }: { icon: React.ElementType; label: string; value: number; tone: "blue" | "green" | "amber" | "red"; delta: string }) {
+  const tones = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+    red: "bg-red-50 text-red-500",
+  };
+
+  return (
+    <div className="flex items-center gap-5 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <span className={`grid h-14 w-14 place-items-center rounded-lg ${tones[tone]}`}>
+        <Icon className="h-7 w-7" />
+      </span>
+      <div>
+        <p className="text-sm font-black text-blue-950">{label}</p>
+        <p className="mt-2 text-3xl font-black text-slate-950">{value.toLocaleString("vi-VN")}</p>
+        <p className={`mt-2 text-xs font-bold ${delta.startsWith("-") ? "text-red-500" : "text-emerald-600"}`}>
+          {delta.startsWith("-") ? "↓" : "↑"} {delta} so với tháng trước
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AdminStatusBadge({ room }: { room: BoardingRoom }) {
+  if (room.approvalStatus === "pending") {
+    return <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-600">Chờ duyệt</span>;
+  }
+  if (room.approvalStatus === "rejected") {
+    return <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-500">Bị từ chối</span>;
+  }
+  if (room.status === "hết phòng") {
+    return <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-500">Hết hạn</span>;
+  }
+  return <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-600">Đang hiển thị</span>;
+}
+
+function Legend({ color, label, value }: { color: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
+        {label}
+      </span>
+      <strong className="text-right text-slate-500">{value}</strong>
+    </div>
+  );
+}
+
+function AdminUsersPanel({ currentUser, usersList, isUsersLoading, onToggleUserRole, onDeleteUser, onUpdatePostPermission }: any) {
+  const permissionBadge = (status?: string) => {
+    if (status === "approved") return "border-emerald-200 bg-emerald-50 text-emerald-600";
+    if (status === "pending") return "border-amber-200 bg-amber-50 text-amber-600";
+    if (status === "rejected") return "border-red-200 bg-red-50 text-red-600";
+    return "border-slate-200 bg-slate-50 text-slate-500";
+  };
+  const permissionLabel = (status?: string) => {
+    if (status === "approved") return "Đã duyệt";
+    if (status === "pending") return "Chờ duyệt";
+    if (status === "rejected") return "Từ chối";
+    return "Chưa yêu cầu";
+  };
+
+  return (
+    <div className="p-5 lg:p-8">
+      <div className="rounded-lg border border-gray-100 bg-white shadow-sm">
+        <div className="border-b border-gray-50 bg-gray-50/50 px-6 py-4">
+          <h3 className="text-base font-black text-gray-900">Danh sách tài khoản thành viên</h3>
+          <p className="mt-0.5 text-xs text-gray-400">Quản lí nâng cấp/hạ cấp vai trò thành viên hoặc xoá vĩnh viễn tài khoản.</p>
+        </div>
+        <div className="overflow-x-auto">
+          {isUsersLoading ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="text-xs font-medium text-gray-400">Đang tải danh sách thành viên...</span>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 font-bold uppercase text-gray-500">
+                  <th className="px-6 py-3.5">Tên đăng nhập</th>
+                  <th className="px-6 py-3.5">Email</th>
+                  <th className="px-6 py-3.5">Số điện thoại</th>
+                  <th className="px-6 py-3.5">Vai trò</th>
+                  <th className="px-6 py-3.5">Quyền đăng tin</th>
+                  <th className="px-6 py-3.5 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {usersList.map((user: any) => (
+                  <tr key={user.id} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 font-bold text-gray-900">{user.username}</td>
+                    <td className="px-6 py-4 font-medium text-gray-600">{user.email}</td>
+                    <td className="px-6 py-4 font-mono font-bold text-gray-600">{user.phone}</td>
+                    <td className="px-6 py-4">
+                      <button onClick={() => onToggleUserRole(user)} disabled={user.id === currentUser?.id} className={`rounded px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${user.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-50 text-blue-600"} disabled:opacity-50`}>
+                        {user.role}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-black ${permissionBadge(user.postPermissionStatus)}`}>
+                          {permissionLabel(user.postPermissionStatus)}
+                        </span>
+                        {user.postPermissionStatus === "pending" && (
+                          <>
+                            <button onClick={() => onUpdatePostPermission(user, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1 text-[10px] font-black text-white hover:bg-emerald-700">
+                              Duyệt
+                            </button>
+                            <button onClick={() => onUpdatePostPermission(user, "reject")} className="rounded-lg border border-red-200 px-3 py-1 text-[10px] font-black text-red-600 hover:bg-red-50">
+                              Từ chối
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button onClick={() => onDeleteUser(user.id)} disabled={user.id === currentUser?.id} className="rounded-lg p-1.5 text-red-500 hover:bg-red-600 hover:text-white disabled:opacity-50">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

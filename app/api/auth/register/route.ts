@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
       phone,
       email,
       password,
-      role: "user"
+      role: "user",
+      experienceYears: "3 năm",
+      postPermissionStatus: "none"
     };
 
     await sql`
-      INSERT INTO users (id, username, phone, email, password, role)
-      VALUES (${newUser.id}, ${newUser.username}, ${newUser.phone}, ${newUser.email}, ${newUser.password}, ${newUser.role})
+      INSERT INTO users (id, username, phone, email, password, role, post_permission_status)
+      VALUES (${newUser.id}, ${newUser.username}, ${newUser.phone}, ${newUser.email}, ${newUser.password}, ${newUser.role}, ${newUser.postPermissionStatus})
     `;
 
     const { password: _, ...safeUser } = newUser;

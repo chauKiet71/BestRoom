@@ -7,7 +7,7 @@ export async function GET() {
 
     // Query top 9 users sorted by number of approved boarding rooms they own
     const rows = await sql`
-      SELECT u.id, u.username, u.email, u.phone, u.role, u.avatar, u.fullname, COALESCE(rooms_count.count, 0)::int as room_count
+      SELECT u.id, u.username, u.email, u.phone, u.role, u.avatar, u.fullname, u.experience_years, COALESCE(rooms_count.count, 0)::int as room_count
       FROM users u
       LEFT JOIN (
         SELECT owner_id, COUNT(*) as count 

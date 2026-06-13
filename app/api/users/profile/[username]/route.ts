@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
-import { mapRoomFromDb } from "@/lib/mappers";
+import { mapRoomFromDb, mapUserFromDb } from "@/lib/mappers";
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function GET(
 
     // Query user by username (case-insensitive)
     const userRows = await sql`
-      SELECT id, username, email, phone, role, avatar, fullname 
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status 
       FROM users 
       WHERE LOWER(username) = LOWER(${decodeURIComponent(username)})
     `;
@@ -26,15 +26,7 @@ export async function GET(
       return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
     }
 
-    const user = {
-      id: userRows[0].id,
-      username: userRows[0].username,
-      email: userRows[0].email,
-      phone: userRows[0].phone,
-      role: userRows[0].role,
-      avatar: userRows[0].avatar || "",
-      fullname: userRows[0].fullname || "",
-    };
+    const { password: _password, ...user } = mapUserFromDb(userRows[0]);
 
     // Query all rooms posted by this user
     const roomRows = await sql`
@@ -46,10 +38,17 @@ export async function GET(
 
     const rooms = roomRows.map(mapRoomFromDb);
 
+    const scheduleRows = await sql`
+      SELECT COUNT(*) AS count
+      FROM viewing_schedules
+      WHERE owner_id = ${user.id}
+    `;
+
     return NextResponse.json({
       success: true,
       user,
       rooms,
+      scheduleCount: Number(scheduleRows[0]?.count || 0),
     });
   } catch (err: any) {
     console.error("Error fetching user profile:", err);

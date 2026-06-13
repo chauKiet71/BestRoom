@@ -5,11 +5,11 @@ import "./globals.css";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "BestRoom - Hệ Thống Tìm Kiếm Phòng Trọ Giá Tốt",
-  description: "Lọc chi tiết hàng chục tiện nghi: chung chủ, wifi, nước miễn phí, thâm niên phòng, thang máy, hợp đồng cam kết chặt chẽ và không mất thêm phí trung gian.",
+  title: "BestRoom - Tìm phòng dễ dàng, đăng tin nhanh chóng",
+  description: "Nền tảng kết nối người thuê và chủ trọ uy tín, giúp bạn tìm không gian sống lý tưởng.",
   icons: {
-    icon: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: "/bestroom-logo.png",
+    apple: "/bestroom-logo.png",
   },
 };
 
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="font-sans antialiased min-h-screen bg-gray-50/50 text-gray-800 flex flex-col">
+      <body className="font-sans antialiased min-h-screen bg-white text-gray-800 flex flex-col">
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
@@ -39,4 +39,3 @@ export default function RootLayout({
     </html>
   );
 }
-

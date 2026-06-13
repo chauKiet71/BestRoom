@@ -31,10 +31,15 @@ interface AppContextType {
   selectedRoom: BoardingRoom | null;
   setSelectedRoom: (room: BoardingRoom | null) => void;
   viewRoomDetails: (room: BoardingRoom) => Promise<void>;
+  favoriteRoomIds: string[];
+  favoriteRooms: BoardingRoom[];
+  isFavoriteRoom: (roomId: string) => boolean;
+  toggleFavoriteRoom: (room: BoardingRoom) => void;
 }
 
 const INITIAL_FILTERS: FilterOptions = {
   searchQuery: "",
+  roomType: "all",
   priceRange: "all",
   areaRange: "all",
   city: "",
@@ -49,6 +54,7 @@ const INITIAL_FILTERS: FilterOptions = {
   hoursType: "all",
   buildYear: "all",
   hasParking: "all",
+  parkingFeeType: "all",
   isPeopleLimited: "all",
   hasElevator: "all",
   hasContract: "all",
@@ -76,6 +82,9 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "register" | "forgot" | "reset">("login");
   const [selectedRoom, setSelectedRoom] = useState<BoardingRoom | null>(null);
+  const [favoriteRoomIds, setFavoriteRoomIds] = useState<string[]>([]);
+
+  const favoriteStorageKey = currentUser?.id ? `bestroom_favorites_${currentUser.id}` : "";
 
   // Load user from localStorage on mount (client-side only)
   useEffect(() => {
@@ -114,6 +123,22 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     refreshData();
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!favoriteStorageKey) {
+      setFavoriteRoomIds([]);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(favoriteStorageKey);
+      const parsed = stored ? JSON.parse(stored) : [];
+      setFavoriteRoomIds(Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : []);
+    } catch (e) {
+      console.error("Failed to read favorites from localStorage", e);
+      setFavoriteRoomIds([]);
+    }
+  }, [favoriteStorageKey]);
+
   const logout = () => {
     localStorage.removeItem("bestroom_user");
     setCurrentUser(null);
@@ -138,6 +163,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  const isFavoriteRoom = (roomId: string) => favoriteRoomIds.includes(roomId);
+
+  const toggleFavoriteRoom = (room: BoardingRoom) => {
+    if (!currentUser) {
+      setAuthModalMode("login");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    setFavoriteRoomIds((prev) => {
+      const next = prev.includes(room.id) ? prev.filter((id) => id !== room.id) : [room.id, ...prev];
+      localStorage.setItem(`bestroom_favorites_${currentUser.id}`, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const favoriteRooms = favoriteRoomIds
+    .map((roomId) => rooms.find((room) => room.id === roomId))
+    .filter((room): room is BoardingRoom => Boolean(room));
+
   return (
     <AppContext.Provider
       value={{
@@ -161,6 +206,10 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         selectedRoom,
         setSelectedRoom,
         viewRoomDetails,
+        favoriteRoomIds,
+        favoriteRooms,
+        isFavoriteRoom,
+        toggleFavoriteRoom,
       }}
     >
       {children}

@@ -70,6 +70,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const roomType = searchParams.get("roomType");
+    if (roomType && roomType !== "all") {
+      addCondition("room_type", roomType);
+    }
+
     const areaRange = searchParams.get("areaRange");
     if (areaRange && areaRange !== "all") {
       if (areaRange === "under-20") {
@@ -144,6 +149,11 @@ export async function GET(request: NextRequest) {
     const hasParking = searchParams.get("hasParking");
     if (hasParking && hasParking !== "all") {
       addCondition("has_parking", hasParking === "yes");
+    }
+
+    const parkingFeeType = searchParams.get("parkingFeeType");
+    if (parkingFeeType && parkingFeeType !== "all") {
+      addCondition("parking_fee_type", parkingFeeType);
     }
 
     const isPeopleLimited = searchParams.get("isPeopleLimited");
@@ -239,6 +249,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (userRole === "user") {
+      const permissionRows = await sql`
+        SELECT post_permission_status
+        FROM users
+        WHERE id = ${userId}
+      `;
+      if (permissionRows[0]?.post_permission_status !== "approved") {
+        return NextResponse.json(
+          { error: "Tài khoản của bạn cần được admin duyệt quyền đăng tin trước." },
+          { status: 403 }
+        );
+      }
+    }
+
     const newRoom = await request.json();
     if (!newRoom.title || !newRoom.price || !newRoom.city) {
       return NextResponse.json(
@@ -254,6 +278,7 @@ export async function POST(request: NextRequest) {
       ...newRoom,
       id: generatedId,
       price: Number(newRoom.price),
+      roomType: newRoom.roomType || "Phòng trọ",
       area: Number(newRoom.area || 0),
       rating: newRoom.rating !== undefined ? Number(newRoom.rating) : 0,
       buildYear: Number(newRoom.buildYear || 2024),
@@ -272,13 +297,14 @@ export async function POST(request: NextRequest) {
 
     const rows = await sql`
       INSERT INTO rooms (
-        id, title, description, price, area, city, district, ward, street, address_detailed,
+        id, room_type, title, description, price, area, city, district, ward, street, address_detailed,
         contact_name, contact_phone, image, images, is_shared_owner, rating,
-        has_wifi, water_fee_type, status, hours_type, build_year, has_parking,
+        has_wifi, water_fee_type, status, hours_type, build_year, has_parking, parking_fee_type,
         is_people_limited, max_people, has_elevator, has_contract, interested_count, created_at,
         has_balcony, has_mezzanine, has_furniture, has_air_conditioner, electricity_price, owner_id, approval_status
       ) VALUES (
         ${preparedRoom.id},
+        ${preparedRoom.roomType},
         ${preparedRoom.title},
         ${preparedRoom.description || ""},
         ${preparedRoom.price},
@@ -300,6 +326,7 @@ export async function POST(request: NextRequest) {
         ${preparedRoom.hoursType || "tự do"},
         ${preparedRoom.buildYear},
         ${preparedRoom.hasParking !== false},
+        ${preparedRoom.parkingFeeType || "miễn phí"},
         ${preparedRoom.isPeopleLimited || false},
         ${preparedRoom.maxPeople || null},
         ${preparedRoom.hasElevator || false},

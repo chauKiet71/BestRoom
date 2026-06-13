@@ -1,8 +1,91 @@
-@import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&display=swap');
+@import "@fontsource/roboto/100.css";
+@import "@fontsource/roboto/100-italic.css";
+@import "@fontsource/roboto/300.css";
+@import "@fontsource/roboto/300-italic.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/400-italic.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/500-italic.css";
+@import "@fontsource/roboto/700.css";
+@import "@fontsource/roboto/700-italic.css";
+@import "@fontsource/roboto/900.css";
+@import "@fontsource/roboto/900-italic.css";
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Reddit Sans", "Helvetica", "Arial", "Roboto", sans-serif;
+  --font-sans: "Roboto", "Arial", "Helvetica", sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #1d4ed8 #eff6ff;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+}
+
+a,
+button,
+select,
+summary,
+label,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[onclick],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"] {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Global Scrollbar Styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1d4ed8 #eff6ff;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #eff6ff;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 2px solid #eff6ff;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #1e40af;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #eff6ff;
 }
 
 /* Custom Scrollbar Styling */
@@ -12,22 +95,23 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #eff6ff;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #3b82f6; /* Tailwind blue-500 */
+  background: #1d4ed8;
+  border: 1px solid #eff6ff;
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #1d4ed8; /* Tailwind blue-700 */
+  background: #1e40af;
 }
 
 /* Firefox scrollbar compatibility */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #3b82f6 transparent;
+  scrollbar-color: #1d4ed8 #eff6ff;
 }
 
 @keyframes slideInRight {

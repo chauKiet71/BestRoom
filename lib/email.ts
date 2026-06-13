@@ -8,6 +8,94 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const escapeHtml = (value: string | number | null | undefined) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+export type ViewingScheduleEmailPayload = {
+  ownerName: string;
+  roomTitle: string;
+  roomPrice: number;
+  roomAddress: string;
+  visitorName: string;
+  visitorPhone: string;
+  viewingDate: string;
+  timeSlot: string;
+  contactMethod: string;
+  visitorsCount: string;
+  note?: string;
+};
+
+export async function sendViewingScheduleEmail(
+  toEmail: string,
+  payload: ViewingScheduleEmailPayload
+): Promise<boolean> {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn("EMAIL_USER or EMAIL_PASS not configured - viewing schedule email not sent.");
+    return false;
+  }
+
+  const priceText = `${Number(payload.roomPrice || 0).toLocaleString("vi-VN")} đ/tháng`;
+  const contactLabels: Record<string, string> = {
+    phone: "Gọi điện",
+    zalo: "Zalo",
+    message: "Nhắn tin",
+  };
+  const timeSlotLabels: Record<string, string> = {
+    morning: "08:00 - 10:00",
+    noon: "10:00 - 12:00",
+    afternoon: "14:00 - 16:00",
+    evening: "18:00 - 20:00",
+  };
+
+  const mailOptions = {
+    from: `"BestRoom" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `[BestRoom] Có lịch hẹn xem phòng mới: ${payload.roomTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #dbeafe; border-radius: 16px; background: #ffffff;">
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0 0 8px; color: #2563eb; font-size: 13px; font-weight: 700;">BESTROOM</p>
+          <h2 style="margin: 0; color: #0f2356; font-size: 22px;">Bạn có lịch hẹn xem phòng mới</h2>
+          <p style="margin: 8px 0 0; color: #64748b; font-size: 14px;">Khách thuê vừa gửi yêu cầu đặt lịch xem phòng trên BestRoom.</p>
+        </div>
+
+        <div style="padding: 16px; border-radius: 12px; background: #eff6ff; border: 1px solid #bfdbfe; margin-bottom: 18px;">
+          <p style="margin: 0 0 6px; color: #0f2356; font-size: 15px; font-weight: 700;">${escapeHtml(payload.roomTitle)}</p>
+          <p style="margin: 0; color: #2563eb; font-size: 18px; font-weight: 800;">${escapeHtml(priceText)}</p>
+          <p style="margin: 8px 0 0; color: #475569; font-size: 13px;">${escapeHtml(payload.roomAddress)}</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr><td style="padding: 9px 0; color: #64748b;">Người đặt lịch</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(payload.visitorName)}</td></tr>
+          <tr><td style="padding: 9px 0; color: #64748b;">Số điện thoại</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(payload.visitorPhone)}</td></tr>
+          <tr><td style="padding: 9px 0; color: #64748b;">Ngày xem phòng</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(payload.viewingDate)}</td></tr>
+          <tr><td style="padding: 9px 0; color: #64748b;">Khung giờ</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(timeSlotLabels[payload.timeSlot] || payload.timeSlot)}</td></tr>
+          <tr><td style="padding: 9px 0; color: #64748b;">Hình thức liên hệ</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(contactLabels[payload.contactMethod] || payload.contactMethod)}</td></tr>
+          <tr><td style="padding: 9px 0; color: #64748b;">Số người đi xem</td><td style="padding: 9px 0; color: #0f2356; font-weight: 700;">${escapeHtml(payload.visitorsCount)} người</td></tr>
+        </table>
+
+        ${payload.note ? `
+          <div style="margin-top: 16px; padding: 14px; border-radius: 12px; background: #f8fafc; color: #334155; font-size: 14px;">
+            <strong style="display: block; margin-bottom: 6px; color: #0f2356;">Ghi chú của khách thuê</strong>
+            ${escapeHtml(payload.note)}
+          </div>
+        ` : ""}
+
+        <p style="margin-top: 22px; color: #64748b; font-size: 13px;">Vui lòng liên hệ lại với khách thuê để xác nhận lịch hẹn.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+  console.log(`Viewing schedule email sent to ${toEmail} for room: ${payload.roomTitle}`);
+  return true;
+}
+
 export async function sendResetCodeEmail(
   toEmail: string,
   code: string

@@ -233,13 +233,22 @@ export default function RoomDetailsModal() {
 
   const overviewItems = [
     ["Diện tích", `${selectedRoom.area} m²`],
-    ["Điện", `${selectedRoom.electricityPrice?.toLocaleString("vi-VN") || "3.800"} đ/kWh`],
-    ["Nước", selectedRoom.waterFeeType === "miễn phí" ? "Miễn phí" : "Có phí"],
-    ["Tiền cọc", "1 tháng"],
-    ["Tối đa số người ở", selectedRoom.isPeopleLimited ? `${selectedRoom.maxPeople || 2} người` : "Không giới hạn"],
-    ["Giới tính phù hợp", "Không yêu cầu"],
-    ["Loại hình", selectedRoom.hasMezzanine ? "Có gác lửng" : "Căn hộ mini"],
+    ["Loại hình", selectedRoom.roomType || (selectedRoom.hasMezzanine ? "Có gác lửng" : "Căn hộ mini")],
     ["Tình trạng", selectedRoom.status === "còn phòng" ? "Phòng trống" : "Đã cho thuê"],
+    ["Giá điện", selectedRoom.electricityPrice ? `${selectedRoom.electricityPrice.toLocaleString("vi-VN")} đ/kWh` : "Theo giá nhà nước"],
+    ["Giá nước", selectedRoom.waterFeeType === "miễn phí" ? "Miễn phí" : "Có phí"],
+    ["Tiền cọc", "1 tháng"],
+    ["Giới hạn người ở", selectedRoom.isPeopleLimited ? `Tối đa ${selectedRoom.maxPeople || 2} người` : "Không giới hạn"],
+    ["Giờ giấc", selectedRoom.hoursType === "tự do" ? "Tự do" : "Cố định"],
+    ["Chung chủ nhà", selectedRoom.isSharedOwner ? "Có chung chủ" : "Không chung chủ"],
+    ["Kết nối Wifi", selectedRoom.hasWifi ? "Có sẵn Wifi" : "Không cung cấp"],
+    ["Chỗ để xe", selectedRoom.hasParking ? `Có (${selectedRoom.parkingFeeType})` : "Không có"],
+    ["Thang máy", selectedRoom.hasElevator ? "Có thang máy" : "Thang bộ"],
+    ["Hợp đồng thuê", selectedRoom.hasContract ? "Có ký hợp đồng" : "Không bắt buộc"],
+    ["Nội thất", selectedRoom.hasFurniture ? "Đầy đủ nội thất" : "Nội thất cơ bản/Chưa có"],
+    ["Máy lạnh", selectedRoom.hasAirConditioner ? "Có máy lạnh" : "Không có"],
+    ["Ban công", selectedRoom.hasBalcony ? "Có ban công" : "Không có"],
+    ["Gác lửng", selectedRoom.hasMezzanine ? "Có gác lửng" : "Không có"],
   ];
 
   const amenities = [
@@ -419,7 +428,7 @@ export default function RoomDetailsModal() {
 
             <div className="mt-3">
               {activeTab === "overview" && (
-                <Panel title="Thông tin tổng quan">
+                <Panel title="Tiện nghi & Quy định">
                   <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                     {overviewItems.map(([label, value]) => (
                       <InfoBullet key={label} label={label} value={value} />

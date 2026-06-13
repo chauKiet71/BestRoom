@@ -244,18 +244,44 @@ export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
             </div>
             <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
               {currentUser && (
-                <Link
-                  href={`/user/${currentUser.username}?edit`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex h-11 items-center justify-center rounded-lg border border-slate-300 text-sm font-black text-slate-800"
-                >
-                  Thông tin của tôi
-                </Link>
+                <>
+                  <Link
+                    href={`/user/${currentUser.username}?edit`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex h-11 items-center justify-center rounded-lg border border-slate-300 text-sm font-black text-slate-800"
+                  >
+                    Thông tin của tôi
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="flex h-11 items-center justify-center gap-2 rounded-lg border border-red-200 text-sm font-black text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" /> Đăng xuất
+                  </button>
+                </>
               )}
               {!currentUser && (
-                <button onClick={onLoginClick} className="h-11 rounded-lg border border-slate-300 text-sm font-black text-slate-800">Đăng nhập</button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onLoginClick();
+                  }}
+                  className="h-11 rounded-lg border border-slate-300 text-sm font-black text-slate-800"
+                >
+                  Đăng nhập
+                </button>
               )}
-              <button onClick={postRoom} disabled={isRequestingPostPermission} className="h-11 rounded-lg bg-[#ffc400] text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-70">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  postRoom();
+                }}
+                disabled={isRequestingPostPermission}
+                className="h-11 rounded-lg bg-[#ffc400] text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-70"
+              >
                 {isRequestingPostPermission ? "Đang gửi..." : postButtonLabel}
               </button>
             </div>

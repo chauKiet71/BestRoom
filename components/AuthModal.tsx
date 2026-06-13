@@ -163,7 +163,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
           : ["Nhập mã xác nhận", "Tạo mật khẩu mới cho tài khoản"];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white/80 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white/80 backdrop-blur-md">
       <div
         id="auth-modal-card"
         className={`relative grid w-full origin-center scale-75 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(37,99,235,0.16)] ${

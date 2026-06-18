@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
+import { getDefaultRooms } from "@/lib/roomData";
 
 export async function GET() {
   try {
@@ -17,9 +18,14 @@ export async function GET() {
       years: yearsRows.map((r: any) => Number(r.build_year))
     });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: "Cannot retrieve metadata: " + err.message },
-      { status: 500 }
-    );
+    const rooms = getDefaultRooms();
+    const metadata = {
+      cities: Array.from(new Set(rooms.map((room: any) => room.city).filter(Boolean))),
+      wards: Array.from(new Set(rooms.map((room: any) => room.ward).filter(Boolean))),
+      streets: Array.from(new Set(rooms.map((room: any) => room.street).filter(Boolean))),
+      years: Array.from(new Set(rooms.map((room: any) => room.buildYear).filter(Boolean))).sort((a, b) => b - a),
+    };
+
+    return NextResponse.json(metadata);
   }
 }

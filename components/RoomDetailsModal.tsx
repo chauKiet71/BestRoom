@@ -78,6 +78,7 @@ export default function RoomDetailsModal() {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSubmittingSchedule, setIsSubmittingSchedule] = useState(false);
   const [ownerUser, setOwnerUser] = useState<AppUser | null>(null);
+  const [ownerLoading, setOwnerLoading] = useState(false);
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthModalMode(mode);
@@ -104,14 +105,26 @@ export default function RoomDetailsModal() {
     const loadOwner = async () => {
       if (!selectedRoom?.ownerId) {
         setOwnerUser(null);
+        setOwnerLoading(false);
         return;
+      }
+
+      if (!ignore) {
+        setOwnerLoading(true);
+        setOwnerUser(null);
       }
 
       try {
         const user = await userService.getUser(selectedRoom.ownerId);
-        if (!ignore) setOwnerUser(user);
+        if (!ignore) {
+          setOwnerUser(user);
+          setOwnerLoading(false);
+        }
       } catch {
-        if (!ignore) setOwnerUser(null);
+        if (!ignore) {
+          setOwnerUser(null);
+          setOwnerLoading(false);
+        }
       }
     };
 
@@ -406,7 +419,7 @@ export default function RoomDetailsModal() {
               {[
                 ["overview", Home, "Tổng quan"],
                 ["description", Copy, "Mô tả"],
-                ["amenities", Share2, "Tiện ích"],
+                // ["amenities", Share2, "Tiện ích"],
                 ["location", MapPin, "Đánh giá"],
                 ["related", Camera, "Tin liên quan"],
               ].map(([id, Icon, label]) => (
@@ -598,39 +611,57 @@ export default function RoomDetailsModal() {
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <SidebarCard>
               <h2 className="text-lg font-black text-blue-950">Thông tin liên hệ</h2>
-              <div className="mt-5 flex items-center gap-4">
-                <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-blue-100">
-                  {ownerAvatar ? (
-                    <img src={ownerAvatar} alt={ownerName} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <User className="h-8 w-8 text-blue-600" />
-                  )}
+              {ownerLoading ? (
+                <div className="mt-5 animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-full bg-blue-100/70" />
+                    <div className="flex-1 space-y-3">
+                      <div className="h-4 w-36 rounded-full bg-slate-200" />
+                      <div className="h-3 w-24 rounded-full bg-slate-100" />
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    <div className="h-11 rounded-lg bg-blue-100/70" />
+                    <div className="mx-auto h-4 w-32 rounded-full bg-slate-100" />
+                  </div>
                 </div>
-                <div>
-                  <p className="flex items-center gap-2 text-sm font-black text-blue-950">
-                    {ownerName}
-                    <ShieldCheck className="h-4 w-4 fill-blue-600 text-blue-600" />
-                  </p>
-                  <p className="mt-2 text-xs font-semibold text-slate-500">Đã tham gia 2 năm</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                {currentUser ? (
-                  <a href={phoneHref(ownerPhone)} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-black text-white hover:bg-blue-700">
-                    <Phone className="h-4 w-4" />
-                    Gọi ngay
-                  </a>
-                ) : (
-                  <button onClick={() => openLogin("login")} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-black text-white hover:bg-blue-700">
-                    <Phone className="h-4 w-4" />
-                    Gọi ngay
-                  </button>
-                )}
-                <a href={ownerProfileHref} className="mx-auto flex w-fit items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-800">
-                  Xem trang cá nhân
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </div>
+              ) : (
+                <>
+                  <div className="mt-5 flex items-center gap-4">
+                    <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-blue-100">
+                      {ownerAvatar ? (
+                        <img src={ownerAvatar} alt={ownerName} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <User className="h-8 w-8 text-blue-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-black text-blue-950">
+                        {ownerName}
+                        <ShieldCheck className="h-4 w-4 fill-blue-600 text-blue-600" />
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-slate-500">Đã tham gia 2 năm</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {currentUser ? (
+                      <a href={phoneHref(ownerPhone)} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-black text-white hover:bg-blue-700">
+                        <Phone className="h-4 w-4" />
+                        Gọi ngay
+                      </a>
+                    ) : (
+                      <button onClick={() => openLogin("login")} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-black text-white hover:bg-blue-700">
+                        <Phone className="h-4 w-4" />
+                        Gọi ngay
+                      </button>
+                    )}
+                    <a href={ownerProfileHref} className="mx-auto flex w-fit items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-800">
+                      Xem trang cá nhân
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </div>
+                </>
+              )}
             </SidebarCard>
 
             <SidebarCard>

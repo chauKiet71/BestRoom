@@ -5,9 +5,9 @@ import { Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import FiltersSidebar from "@/components/FiltersSidebar";
 import RoomCard from "@/components/RoomCard";
-import { roomService } from "@/services/roomService";
 import { BoardingRoom } from "@/types";
 import PageLoader from "@/components/PageLoader";
+import { filterRooms, getDefaultRooms } from "@/lib/roomData";
 
 const cleanName = (name: string): string => {
   if (!name) return "";
@@ -67,29 +67,31 @@ export default function SearchPage() {
 
   useEffect(() => {
     let active = true;
-    const fetchRooms = async () => {
+    const applyFilters = () => {
       try {
         setSearchLoading(true);
-        const res = await roomService.getRooms(undefined, undefined, {
-          paginated: true,
-          page: currentPage,
-          limit: ITEMS_PER_PAGE,
-          filters
-        });
+        const baseRooms = getDefaultRooms();
+        const filtered = filterRooms(baseRooms, filters);
+        const total = filtered.length;
+        const totalPagesCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const paged = filtered.slice(start, start + ITEMS_PER_PAGE);
+
         if (active) {
-          setSearchResults(res.rooms || []);
-          setTotalCount(res.totalCount || 0);
-          setTotalPages(res.totalPages || 0);
+          setSearchResults(paged);
+          setTotalCount(total);
+          setTotalPages(totalPagesCount);
         }
       } catch (err) {
-        console.error("Lỗi khi tìm kiếm phòng từ server:", err);
+        console.error("Lỗi khi lọc phòng:", err);
       } finally {
         if (active) {
           setSearchLoading(false);
         }
       }
     };
-    fetchRooms();
+
+    applyFilters();
     return () => {
       active = false;
     };

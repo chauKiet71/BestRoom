@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapRoomFromDb } from "@/lib/mappers";
+import { filterRooms, getDefaultRooms } from "@/lib/roomData";
 
 export async function GET(request: NextRequest) {
   try {
@@ -228,10 +229,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(rows.map(mapRoomFromDb));
     }
   } catch (err: any) {
-    return NextResponse.json(
-      { error: "Server error: " + err.message },
-      { status: 500 }
-    );
+    const searchParams = new URL(request.url).searchParams;
+    const fallbackFilters = Object.fromEntries(searchParams.entries()) as Record<string, string>;
+    const fallbackRooms = getDefaultRooms();
+    const filteredRooms = filterRooms(fallbackRooms, fallbackFilters as any);
+    const page = Number(searchParams.get("page") || "1");
+    const limit = Number(searchParams.get("limit") || "9");
+    const isPaginated = searchParams.get("paginated") === "true";
+
+    if (isPaginated) {
+      const totalCount = filteredRooms.length;
+      const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+      const start = (page - 1) * limit;
+      const pagedRooms = filteredRooms.slice(start, start + limit);
+
+      return NextResponse.json({
+        rooms: pagedRooms,
+        totalCount,
+        totalPages,
+        currentPage: page,
+      });
+    }
+
+    return NextResponse.json(filteredRooms);
   }
 }
 

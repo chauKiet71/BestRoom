@@ -143,10 +143,10 @@ export default function SepayPaymentPage() {
               <QrCode className="h-7 w-7" />
             </span>
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-blue-600">Thanh toán SePay</p>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-blue-600">Thanh toán</p>
               <h1 className="mt-2 text-3xl font-black leading-tight text-blue-950">Quét mã QR để kích hoạt gói</h1>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                Sau khi thanh toán thành công, SePay sẽ gửi webhook về hệ thống và gói của bạn sẽ được kích hoạt tự động.
+                Sau khi thanh toán thành công, hệ thống sẽ tự động kích hoạt gói cho bạn.
               </p>
             </div>
           </div>
@@ -158,20 +158,9 @@ export default function SepayPaymentPage() {
             <InfoBox label="Số tiền" value={formatPrice(payment.amount)} highlight />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <div className="text-sm font-semibold leading-6 text-amber-800">
-                Nội dung chuyển khoản đã được đặt theo tên đăng nhập:
-                <span className="ml-1 font-black">{payment.description}</span>.
-                Vui lòng giữ đúng nội dung này để hệ thống nhận diện giao dịch.
-              </div>
-            </div>
-          </div>
-
           <div className="mt-6 space-y-3">
             <CopyRow label="Ngân hàng" value={payment.bank} copied={copied === "bank"} onCopy={() => copyText("bank", payment.bank)} />
-            <CopyRow label="Tài khoản" value={payment.account} copied={copied === "account"} onCopy={() => copyText("account", payment.account)} />
+            <CopyRow label="Tài khoản" value={"LE CHAU KIET"} copied={copied === "account"} onCopy={() => copyText("account", payment.account)} />
             <CopyRow label="Số tiền" value={String(payment.amount)} copied={copied === "amount"} onCopy={() => copyText("amount", String(payment.amount))} />
             <CopyRow label="Nội dung" value={payment.description} copied={copied === "description"} onCopy={() => copyText("description", payment.description)} />
           </div>

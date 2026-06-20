@@ -16,7 +16,7 @@ interface HeaderProps {
 const navItems = [
   { href: "/", label: "Trang chủ" },
   { href: "/search", label: "Tìm phòng" },
-  { href: "/pricing", label: "Bảng giá" },
+  // { href: "/pricing", label: "Bảng giá" },
   { href: "/admin", label: "Đăng tin" },
   { href: "/favorites", label: "Yêu thích" },
 ];

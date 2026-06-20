@@ -8,6 +8,7 @@ import RoomCard from "@/components/RoomCard";
 import { BoardingRoom } from "@/types";
 import PageLoader from "@/components/PageLoader";
 import { filterRooms, getDefaultRooms } from "@/lib/roomData";
+import { roomService } from "@/services/roomService";
 
 const cleanName = (name: string): string => {
   if (!name) return "";
@@ -53,7 +54,7 @@ export default function SearchPage() {
   } = useApp();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 9;
+  const ITEMS_PER_PAGE = 6;
 
   const [searchResults, setSearchResults] = useState<BoardingRoom[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -67,23 +68,52 @@ export default function SearchPage() {
 
   useEffect(() => {
     let active = true;
-    const applyFilters = () => {
+    const applyFilters = async () => {
       try {
         setSearchLoading(true);
-        const baseRooms = getDefaultRooms();
-        const filtered = filterRooms(baseRooms, filters);
-        const total = filtered.length;
-        const totalPagesCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        const paged = filtered.slice(start, start + ITEMS_PER_PAGE);
+        const response = await roomService.getRooms(undefined, undefined, {
+          paginated: true,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          sortBy: "created_at",
+          sortOrder: "DESC",
+          filters,
+        });
+
+        const rooms = Array.isArray(response) ? response : response.rooms || [];
+        const total = Array.isArray(response) ? response.length : Number(response.totalCount || rooms.length);
+        const totalPagesCount = Math.max(1, Number(response.totalPages || Math.ceil(total / ITEMS_PER_PAGE)));
+
+        if (currentPage > totalPagesCount) {
+          if (active) {
+            setCurrentPage(totalPagesCount);
+          }
+          return;
+        }
 
         if (active) {
-          setSearchResults(paged);
+          setSearchResults(rooms);
           setTotalCount(total);
           setTotalPages(totalPagesCount);
         }
       } catch (err) {
         console.error("Lỗi khi lọc phòng:", err);
+        const baseRooms = getDefaultRooms();
+        const filtered = filterRooms(baseRooms, filters);
+        const total = filtered.length;
+        const totalPagesCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+        const safePage = Math.min(currentPage, totalPagesCount);
+        const start = (safePage - 1) * ITEMS_PER_PAGE;
+        const paged = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+        if (active) {
+          if (safePage !== currentPage) {
+            setCurrentPage(safePage);
+          }
+          setSearchResults(paged);
+          setTotalCount(total);
+          setTotalPages(totalPagesCount);
+        }
       } finally {
         if (active) {
           setSearchLoading(false);
@@ -242,51 +272,59 @@ export default function SearchPage() {
           </div>
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="mt-10 flex items-center justify-center gap-2 border-t border-gray-100 pt-8">
-              <button
-                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed bg-white"
-                aria-label="Previous Page"
-              >
-                <ChevronLeft className="h-4.5 w-4.5" />
-              </button>
+          {totalCount > 0 && (
+            <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-8 sm:flex-row">
+              {/* <p className="text-sm font-bold text-slate-500">
+                Hiển thị {startIndex + 1}-{endIndex} trong {totalCount} phòng trọ
+              </p> */}
 
-              <div className="flex items-center gap-1.5">
-                {paginationItems.map((item) => {
-                  if (typeof item === "string") {
-                    return (
-                      <span key={item} className="grid h-10 w-8 place-items-center text-sm font-black text-gray-400 select-none">
-                        ...
-                      </span>
-                    );
-                  }
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-2.5 text-gray-600 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                    aria-label="Trang trước"
+                  >
+                    <ChevronLeft className="h-4.5 w-4.5" />
+                  </button>
 
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => handlePageChange(item)}
-                      className={`h-10 w-10 flex items-center justify-center rounded-xl text-sm font-extrabold transition-all cursor-pointer border-none ${
-                        currentPage === item
-                          ? "bg-[#4781fd] text-white shadow-md shadow-blue-500/10"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
+                  <div className="flex items-center gap-1.5">
+                    {paginationItems.map((item) => {
+                      if (typeof item === "string") {
+                        return (
+                          <span key={item} className="grid h-10 w-8 select-none place-items-center text-sm font-black text-gray-400">
+                            ...
+                          </span>
+                        );
+                      }
 
-              <button
-                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="flex items-center justify-center p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed bg-white"
-                aria-label="Next Page"
-              >
-                <ChevronRight className="h-4.5 w-4.5" />
-              </button>
+                      return (
+                        <button
+                          key={item}
+                          onClick={() => handlePageChange(item)}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl border-none text-sm font-extrabold transition-all ${
+                            currentPage === item
+                              ? "bg-[#4781fd] text-white shadow-md shadow-blue-500/10"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-2.5 text-gray-600 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                    aria-label="Trang sau"
+                  >
+                    <ChevronRight className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -40,6 +40,7 @@ export interface BoardingRoom {
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string | null;
   createdAt: string; // ISO date string, used for "Trọ mới đăng"
+  expiresAt?: string; // ISO date string, tin hiển thị 30 ngày từ ngày đăng
   reviews?: Review[]; // Danh sách đánh giá của phòng
 }
 

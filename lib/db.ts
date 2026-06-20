@@ -90,7 +90,8 @@ async function _initSchema(): Promise<void> {
       has_air_conditioner BOOLEAN     DEFAULT FALSE,
       electricity_price  INT          DEFAULT 3500,
       interested_count   INT          DEFAULT 0,
-      created_at         TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+      created_at         TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+      expires_at         TIMESTAMP    DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days')
     )
   `;
 
@@ -187,6 +188,8 @@ async function _initSchema(): Promise<void> {
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id          VARCHAR(50)  REFERENCES users(id) ON DELETE CASCADE`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS approval_status    VARCHAR(50)  DEFAULT 'approved'`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS rejection_reason   TEXT`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS expires_at         TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days')`;
+  await sql`UPDATE rooms SET expires_at = COALESCE(expires_at, created_at + INTERVAL '30 days') WHERE expires_at IS NULL`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar             VARCHAR(255) DEFAULT ''`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS fullname           VARCHAR(255) DEFAULT ''`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_years   VARCHAR(50) DEFAULT '3 năm'`;

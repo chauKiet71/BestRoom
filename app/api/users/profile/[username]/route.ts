@@ -34,7 +34,9 @@ export async function GET(
     const roomRows = await sql`
       SELECT * 
       FROM rooms 
-      WHERE owner_id = ${user.id} AND approval_status = 'approved'
+      WHERE owner_id = ${user.id}
+        AND approval_status = 'approved'
+        AND COALESCE(expires_at, created_at + INTERVAL '30 days') >= CURRENT_TIMESTAMP
       ORDER BY created_at DESC
     `;
 

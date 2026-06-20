@@ -27,6 +27,7 @@ import {
   Trophy,
   UserRound,
   Users,
+  Trash2,
   X,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
@@ -98,10 +99,16 @@ export default function UserProfilePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
-  const [editPanel, setEditPanel] = useState<"profile" | "listing">("profile");
+  const [editPanel, setEditPanel] = useState<"profile" | "listing" | "posted">("profile");
   const [listingForm, setListingForm] = useState<Partial<BoardingRoom>>(() => createDefaultListingForm(null));
   const [isCreatingListing, setIsCreatingListing] = useState(false);
   const [createListingError, setCreateListingError] = useState<string | null>(null);
+  const [editingRoom, setEditingRoom] = useState<BoardingRoom | null>(null);
+  const [isUpdatingListing, setIsUpdatingListing] = useState(false);
+  const [updateListingError, setUpdateListingError] = useState<string | null>(null);
+  const [deleteTargetRoom, setDeleteTargetRoom] = useState<BoardingRoom | null>(null);
+  const [isDeletingListing, setIsDeletingListing] = useState(false);
+  const [deleteListingError, setDeleteListingError] = useState<string | null>(null);
   const [isUploadingListingMainImage, setIsUploadingListingMainImage] = useState(false);
   const [listingMainImageError, setListingMainImageError] = useState<string | null>(null);
   const [isUploadingListingImages, setIsUploadingListingImages] = useState(false);
@@ -349,6 +356,28 @@ export default function UserProfilePage() {
     setEditPanel("listing");
   };
 
+  const openPostedListings = () => {
+    setEditPanel("posted");
+  };
+
+  const openEditListing = (room: BoardingRoom) => {
+    setEditingRoom(room);
+    setListingForm({
+      ...createDefaultListingForm(currentUser),
+      ...room,
+      images: Array.isArray(room.images) ? room.images : [room.image].filter(Boolean),
+    });
+    setUpdateListingError(null);
+  };
+
+  const closeEditListing = () => {
+    setEditingRoom(null);
+    setUpdateListingError(null);
+    if (currentUser) {
+      setListingForm(createDefaultListingForm(currentUser));
+    }
+  };
+
   const handleCreateListing = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!currentUser) return;
@@ -358,7 +387,9 @@ export default function UserProfilePage() {
     try {
       const savedRoom = await roomService.createRoom(listingForm, currentUser.role, currentUser.id);
       setRooms((prev) => [savedRoom, ...prev]);
-      setGlobalRooms((prev) => [savedRoom, ...prev]);
+      if (savedRoom.approvalStatus === "approved") {
+        setGlobalRooms((prev) => [savedRoom, ...prev]);
+      }
       const refreshedUser = await userService.getUser(currentUser.id);
       const nextUser = { ...currentUser, ...refreshedUser };
       setCurrentUser(nextUser);
@@ -368,6 +399,42 @@ export default function UserProfilePage() {
       setCreateListingError(err.message || "Không thể tạo tin đăng phòng trọ.");
     } finally {
       setIsCreatingListing(false);
+    }
+  };
+
+  const handleUpdateListing = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!currentUser || !editingRoom) return;
+
+    setIsUpdatingListing(true);
+    setUpdateListingError(null);
+    try {
+      const updatedRoom = await roomService.updateRoom(editingRoom.id, listingForm, currentUser.role, currentUser.id);
+      setRooms((prev) => prev.map((room) => (room.id === updatedRoom.id ? updatedRoom : room)));
+      setGlobalRooms((prev) => prev.map((room) => (room.id === updatedRoom.id ? updatedRoom : room)));
+      closeEditListing();
+      setEditPanel("posted");
+    } catch (err: any) {
+      setUpdateListingError(err.message || "KhÃ´ng thá»ƒ cáº­p nháº­t tin Ä‘Äƒng phÃ²ng trá».");
+    } finally {
+      setIsUpdatingListing(false);
+    }
+  };
+
+  const handleConfirmDeleteListing = async () => {
+    if (!currentUser || !deleteTargetRoom) return;
+
+    setIsDeletingListing(true);
+    setDeleteListingError(null);
+    try {
+      await roomService.deleteRoom(deleteTargetRoom.id, currentUser.role, currentUser.id);
+      setRooms((prev) => prev.filter((room) => room.id !== deleteTargetRoom.id));
+      setGlobalRooms((prev) => prev.filter((room) => room.id !== deleteTargetRoom.id));
+      setDeleteTargetRoom(null);
+    } catch (err: any) {
+      setDeleteListingError(err.message || "KhÃ´ng thá»ƒ xÃ³a tin Ä‘Äƒng phÃ²ng trá».");
+    } finally {
+      setIsDeletingListing(false);
     }
   };
 
@@ -469,6 +536,12 @@ export default function UserProfilePage() {
           onBack={() => router.push(`/user/${profileUser.username}`)}
           onPostRoom={openCreateListing}
           onShowProfile={() => setEditPanel("profile")}
+          onShowPostedListings={openPostedListings}
+          onEditListing={openEditListing}
+          onRequestDeleteListing={(room) => {
+            setDeleteTargetRoom(room);
+            setDeleteListingError(null);
+          }}
           activePanel={editPanel}
           listingForm={listingForm}
           setListingForm={setListingForm}
@@ -486,6 +559,66 @@ export default function UserProfilePage() {
           postingSummary={postingSummary}
           onGoPricing={() => router.push("/pricing")}
         />
+        {editingRoom && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-slate-100 px-7 py-5">
+                <div>
+                  <h2 className="text-2xl font-black text-blue-950">Chỉnh sửa Thông Tin Phòng Trọ</h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">Nhập đầy đủ thông tin bên dưới để đồng bộ cơ sở dữ liệu.</p>
+                </div>
+                <button type="button" onClick={closeEditListing} className="grid h-10 w-10 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-blue-950">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <CreateListingPanel
+                form={listingForm}
+                setForm={setListingForm}
+                isSubmitting={isUpdatingListing}
+                error={updateListingError}
+                onCancel={closeEditListing}
+                onSubmit={handleUpdateListing}
+                isUploadingMainImage={isUploadingListingMainImage}
+                mainImageError={listingMainImageError}
+                onUploadMainImage={handleUploadListingMainImage}
+                isUploadingGalleryImages={isUploadingListingImages}
+                galleryImageError={listingImagesError}
+                onUploadGalleryImages={handleUploadListingImages}
+                currentUser={currentUser}
+                hasPostingAccess
+                postingSummary="Chỉnh sửa thông tin phòng trọ hiện có. Tin sau khi lưu sẽ được đồng bộ lại hệ thống."
+                onGoPricing={() => router.push("/pricing")}
+                title="Chỉnh sửa Thông Tin Phòng Trọ"
+                description="Nhập đầy đủ thông tin bên dưới để đồng bộ cơ sở dữ liệu."
+                submitLabel="Lưu thay đổi"
+                submittingLabel="Đang lưu..."
+                compactHeader
+              />
+            </div>
+          </div>
+        )}
+        {deleteTargetRoom && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-50 text-red-600">
+                <Trash2 className="h-7 w-7" />
+              </div>
+              <h2 className="mt-4 text-xl font-black text-blue-950">Có chắc chắn muốn xóa không?</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                Tin "{deleteTargetRoom.title}" sẽ bị xóa khỏi hệ thống.
+              </p>
+              {deleteListingError && <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm font-bold text-red-600">{deleteListingError}</p>}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setDeleteTargetRoom(null)} className="h-11 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50">
+                  Không
+                </button>
+                <button type="button" disabled={isDeletingListing} onClick={handleConfirmDeleteListing} className="h-11 rounded-lg bg-red-600 text-sm font-black text-white hover:bg-red-700 disabled:opacity-60">
+                  {isDeletingListing ? "Đang xóa..." : "Có, xóa"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -678,6 +811,11 @@ function CreateListingPanel({
   hasPostingAccess,
   postingSummary,
   onGoPricing,
+  title = "Thêm phòng trọ mới vào hệ thống",
+  description = "Nhập đầy đủ thông tin bên dưới để đăng bài cho khách thuê tiếp cận.",
+  submitLabel = "Đăng tin phòng trọ",
+  submittingLabel = "Đang tạo tin...",
+  compactHeader = false,
 }: {
   form: Partial<BoardingRoom>;
   setForm: React.Dispatch<React.SetStateAction<Partial<BoardingRoom>>>;
@@ -695,6 +833,11 @@ function CreateListingPanel({
   hasPostingAccess: boolean;
   postingSummary: string;
   onGoPricing: () => void;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  submittingLabel?: string;
+  compactHeader?: boolean;
 }) {
   const updateField = <K extends keyof BoardingRoom>(key: K, value: BoardingRoom[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -716,22 +859,23 @@ function CreateListingPanel({
     <form onSubmit={onSubmit} className="space-y-3">
 
       <section className="overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm">
-        <div className="flex items-start justify-between border-b border-slate-100 bg-white px-6 py-5">
-          <div>
-            <h2 className="text-2xl font-black text-blue-950">Thêm phòng trọ mới vào hệ thống</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">Nhập đầy đủ thông tin bên dưới để đăng bài cho khách thuê tiếp cận.</p>
+        {!compactHeader && (
+          <div className="flex items-start justify-between border-b border-slate-100 bg-white px-6 py-5">
+            <div>
+              <h2 className="text-2xl font-black text-blue-950">{title}</h2>
+              <p className="mt-1 text-sm font-semibold text-slate-500">{description}</p>
+            </div>
           </div>
-        </div>
-
+        )}
         <div className="px-6 py-5">
-          <div className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${hasPostingAccess ? "border-blue-100 bg-blue-50 text-blue-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+          {/* <div className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${hasPostingAccess ? "border-blue-100 bg-blue-50 text-blue-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
             <p>{postingSummary}</p>
             {!hasPostingAccess && currentUser?.role !== "admin" && (
               <button type="button" onClick={onGoPricing} className="mt-3 inline-flex h-10 items-center rounded-lg bg-[#ffc400] px-4 text-sm font-black text-slate-950 hover:bg-amber-300">
                 Mua gói đăng tin
               </button>
             )}
-          </div>
+          </div> */}
           <section className="border-b border-slate-100 pb-5">
             <SectionTitle index="1" title="Thông tin bắt buộc" />
             <ListingTextInput
@@ -824,7 +968,7 @@ function CreateListingPanel({
           </button>
           <button disabled={isSubmitting || !hasPostingAccess} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#ffc400] px-7 text-sm font-black text-slate-950 shadow hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70">
             <Save className="h-4 w-4" />
-            {isSubmitting ? "Đang tạo tin..." : "Đăng tin phòng trọ"}
+            {isSubmitting ? submittingLabel : submitLabel}
           </button>
         </div>
       </section>
@@ -1106,6 +1250,9 @@ function EditProfileView({
   onBack,
   onPostRoom,
   onShowProfile,
+  onShowPostedListings,
+  onEditListing,
+  onRequestDeleteListing,
   activePanel,
   listingForm,
   setListingForm,
@@ -1149,7 +1296,10 @@ function EditProfileView({
   onBack: () => void;
   onPostRoom: () => void;
   onShowProfile: () => void;
-  activePanel: "profile" | "listing";
+  onShowPostedListings: () => void;
+  onEditListing: (room: BoardingRoom) => void;
+  onRequestDeleteListing: (room: BoardingRoom) => void;
+  activePanel: "profile" | "listing" | "posted";
   listingForm: Partial<BoardingRoom>;
   setListingForm: React.Dispatch<React.SetStateAction<Partial<BoardingRoom>>>;
   isCreatingListing: boolean;
@@ -1199,6 +1349,7 @@ function EditProfileView({
               {[
                 { icon: UserRound, label: "Thông tin cá nhân", active: activePanel === "profile", onClick: onShowProfile },
                 { icon: Building2, label: "Đăng tin phòng trọ", active: activePanel === "listing", onClick: onPostRoom },
+                { icon: Eye, label: "Tin \u0111\u00e3 \u0111\u0103ng", active: activePanel === "posted", onClick: onShowPostedListings },
               ].map(({ icon: Icon, label, active, onClick }) => (
                 <button
                   key={label}
@@ -1234,6 +1385,12 @@ function EditProfileView({
               hasPostingAccess={Boolean(hasPostingAccess)}
               postingSummary={postingSummary}
               onGoPricing={onGoPricing}
+            />
+          ) : activePanel === "posted" ? (
+            <PostedListingsPanel
+              rooms={rooms}
+              onEdit={onEditListing}
+              onDelete={onRequestDeleteListing}
             />
           ) : (
           <form id="edit-profile-form" onSubmit={onSave} className="space-y-3">
@@ -1380,6 +1537,76 @@ function SectionHeader({ title, action }: { title: string; action: string }) {
         <ArrowRight className="h-4 w-4" />
       </button>
     </div>
+  );
+}
+
+function PostedListingsPanel({
+  rooms,
+  onEdit,
+  onDelete,
+}: {
+  rooms: BoardingRoom[];
+  onEdit: (room: BoardingRoom) => void;
+  onDelete: (room: BoardingRoom) => void;
+}) {
+  return (
+    <section className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-blue-950">Tin đã đăng</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">Danh sách phòng trọ mà tài khoản này đã đăng.</p>
+        </div>
+        <span className="rounded-full bg-blue-50 px-4 py-2 text-sm font-black text-blue-600">{rooms.length} tin</span>
+      </div>
+
+      {rooms.length > 0 ? (
+        <div className="space-y-3">
+          {rooms.map((room) => (
+            <article key={room.id} className="grid gap-4 rounded-xl border border-blue-100 bg-white p-3 shadow-sm sm:grid-cols-[150px_1fr_auto]">
+              <img
+                src={room.image || room.images?.[0] || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=500&q=80"}
+                alt={room.title}
+                className="h-32 w-full rounded-lg object-cover sm:h-28"
+                referrerPolicy="no-referrer"
+              />
+              <div className="min-w-0">
+                <h3 className="line-clamp-2 text-base font-black text-blue-950">{room.title}</h3>
+                <p className="mt-1 text-lg font-black text-blue-600">{formatVND(room.price)}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+                  <MapPin className="h-4 w-4" />
+                  <span className="line-clamp-1">{[room.district, room.city].filter(Boolean).join(", ") || room.addressDetailed}</span>
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
+                  <span>{room.area} m²</span>
+                  <span>{room.roomType || "Phòng trọ"}</span>
+                  <span>{room.approvalStatus === "pending" ? "Chờ duyệt" : room.approvalStatus === "rejected" ? "Bị từ chối" : "Đang hiển thị"}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 sm:flex-col sm:justify-center">
+                <button
+                  type="button"
+                  onClick={() => onEdit(room)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-500 px-4 text-sm font-black text-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="h-4 w-4" />
+                  View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(room)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 text-sm font-black text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Xóa
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyCard text="Tài khoản này chưa đăng phòng trọ nào." />
+      )}
+    </section>
   );
 }
 

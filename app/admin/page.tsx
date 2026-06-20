@@ -86,6 +86,9 @@ export default function AdminPage() {
   const [adminStatusFilter, setAdminStatusFilter] = useState("all");
   const [adminTypeFilter, setAdminTypeFilter] = useState("all");
   const [deleteTargetRoom, setDeleteTargetRoom] = useState<BoardingRoom | null>(null);
+  const ownerNameById = new Map(
+    usersList.map((user) => [user.id, user.fullname || user.username || ""])
+  );
 
 
   // Admin form address dropdowns API states
@@ -586,7 +589,6 @@ export default function AdminPage() {
     return room.ownerId === currentUser?.id;
   });
 
-  const ownerNameById = new Map(usersList.map((user) => [user.id, user.fullname || user.username]));
   const approvedRooms = rooms.filter((room) => room.approvalStatus === "approved" || !room.approvalStatus);
   const pendingRooms = rooms.filter((room) => room.approvalStatus === "pending");
   const rejectedRooms = rooms.filter((room) => room.approvalStatus === "rejected");
@@ -1872,6 +1874,18 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
 }
 
 function AdminUsersPanel({ usersList, isUsersLoading }: any) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
+  const normalizedUsers = Array.isArray(usersList) ? usersList : [];
+  const totalPages = Math.max(1, Math.ceil(normalizedUsers.length / usersPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * usersPerPage;
+  const paginatedUsers = normalizedUsers.slice(startIndex, startIndex + usersPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [normalizedUsers.length]);
+
   return (
     <div className="p-5 lg:p-8">
       <div className="rounded-lg border border-gray-100 bg-white shadow-sm">
@@ -1886,10 +1900,12 @@ function AdminUsersPanel({ usersList, isUsersLoading }: any) {
               <span className="text-xs font-medium text-gray-400">Đang tải danh sách thành viên...</span>
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <>
+            <table className="w-full min-w-[980px] text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 font-bold uppercase text-gray-500">
                   <th className="px-6 py-3.5">Tên đăng nhập</th>
+                  <th className="px-6 py-3.5">H&#7885; v&#224; t&#234;n</th>
                   <th className="px-6 py-3.5">Email</th>
                   <th className="px-6 py-3.5">Số điện thoại</th>
                   <th className="px-6 py-3.5">Vai trò</th>
@@ -1898,9 +1914,10 @@ function AdminUsersPanel({ usersList, isUsersLoading }: any) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {usersList.map((user: any) => (
+                {paginatedUsers.map((user: any) => (
                   <tr key={user.id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4 font-bold text-gray-900">{user.username}</td>
+                    <td className="px-6 py-4 font-bold text-gray-700">{user.fullname || user.username || "Ch\u01b0a c\u1eadp nh\u1eadt"}</td>
                     <td className="px-6 py-4 font-medium text-gray-600">{user.email}</td>
                     <td className="px-6 py-4 font-mono font-bold text-gray-600">{user.phone}</td>
                     <td className="px-6 py-4">
@@ -1913,7 +1930,7 @@ function AdminUsersPanel({ usersList, isUsersLoading }: any) {
                       {user.activePlan ? (
                         <div>
                           <p className="text-xs font-black text-blue-950">{user.activePlan.planName}</p>
-                          <p className="mt-1 text-[11px] font-semibold text-slate-500">Còn {user.activePlan.remainingPosts} lượt</p>
+                          <p className="mt-1 text-[11px] font-semibold text-slate-500">Còn {user.activePlan.remainingPosts} tin kỳ này</p>
                         </div>
                       ) : (
                         <span className="text-xs font-semibold text-slate-400">Chưa mua gói</span>
@@ -1923,6 +1940,40 @@ function AdminUsersPanel({ usersList, isUsersLoading }: any) {
                 ))}
               </tbody>
             </table>
+              <div className="flex flex-col gap-3 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-gray-500">
+                  Hi&#7875;n th&#7883; {normalizedUsers.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + usersPerPage, normalizedUsers.length)} / {normalizedUsers.length} ng&#432;&#7901;i d&#249;ng
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={safePage === 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    className="h-9 rounded-lg border border-gray-200 px-3 text-xs font-black text-gray-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Tr&#432;&#7899;c
+                  </button>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-9 min-w-9 rounded-lg border px-3 text-xs font-black ${safePage === page ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 text-gray-700 hover:bg-blue-50"}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={safePage === totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    className="h-9 rounded-lg border border-gray-200 px-3 text-xs font-black text-gray-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Sau
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

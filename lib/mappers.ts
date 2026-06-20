@@ -41,6 +41,9 @@ export function mapRoomFromDb(row: any): any {
     createdAt:        row.created_at
       ? new Date(row.created_at).toISOString()
       : new Date().toISOString(),
+    expiresAt:        row.expires_at
+      ? new Date(row.expires_at).toISOString()
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
 }
 

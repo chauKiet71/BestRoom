@@ -303,7 +303,7 @@ export default function HomePage() {
   }, [rooms]);
 
   const approvedRooms = useMemo(
-    () => rooms.filter((room) => room.approvalStatus === "approved" || !room.approvalStatus),
+    () => rooms.filter((room) => room.approvalStatus === "approved"),
     [rooms]
   );
 

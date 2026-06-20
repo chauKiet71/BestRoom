@@ -36,7 +36,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import { roomService } from "@/services/roomService";
 import { userService } from "@/services/userService";
-import { formatVND } from "./RoomCard";
+import RoomCard, { formatVND } from "./RoomCard";
 import { User as AppUser } from "@/types";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -58,6 +58,7 @@ export default function RoomDetailsModal() {
     setRooms,
     setAuthModalMode,
     setIsAuthModalOpen,
+    viewRoomDetails,
     isFavoriteRoom,
     toggleFavoriteRoom,
   } = useApp();
@@ -487,22 +488,38 @@ export default function RoomDetailsModal() {
               {activeTab === "related" && (
                 <section>
                   <h2 className="mb-3 text-lg font-black text-blue-950">Tin đăng liên quan</h2>
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {relatedRooms.map((room) => (
-                      <article key={room.id} className="overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm">
-                        <div className="flex gap-3 p-2">
-                          <img src={room.image || room.images?.[0] || fallbackImage} alt={room.title} className="h-20 w-24 shrink-0 rounded-md object-cover" referrerPolicy="no-referrer" />
-                          <div className="min-w-0 flex-1">
-                            <h3 className="line-clamp-2 text-xs font-black text-blue-950">{room.title}</h3>
-                            <p className="mt-1 text-sm font-black text-blue-600">{formatVND(room.price)}</p>
-                            <p className="mt-1 text-[11px] font-semibold text-slate-500">{room.area} m² · {districtLabel || selectedRoom.city}</p>
-                          </div>
-                          <Heart className="h-4 w-4 shrink-0 text-slate-400" />
-                        </div>
-                      </article>
+                      <div
+                        key={room.id}
+                        role="button"
+                        tabIndex={0}
+                        className="cursor-pointer [&_*]:pointer-events-none"
+                        onClick={() => {
+                          viewRoomDetails(room);
+                          setActiveTab("overview");
+                          setActiveImageIndex(0);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            viewRoomDetails(room);
+                            setActiveTab("overview");
+                            setActiveImageIndex(0);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
+                        }}
+                      >
+                        <RoomCard room={room} titleLines={2} />
+                      </div>
                     ))}
                   </div>
-                  <button className="mx-auto mt-3 flex h-8 items-center justify-center gap-2 rounded-md border border-blue-500 px-8 text-xs font-black text-blue-600 hover:bg-blue-50">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/search")}
+                    className="mx-auto mt-4 flex h-10 items-center justify-center gap-2 rounded-md border border-blue-500 px-10 text-sm font-black text-blue-600 hover:bg-blue-50"
+                  >
                     Xem thêm tin đăng tương tự
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -878,7 +895,7 @@ export default function RoomDetailsModal() {
                 <button
                   type="submit"
                   disabled={isSubmittingSchedule}
-                  className="flex h-9 items-center justify-center gap-2 rounded-lg border-2 border-blue-950 bg-[#ffbd00] px-7 text-xs font-black text-blue-950 transition hover:bg-[#f2b200] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex h-9 items-center justify-center gap-2 rounded-lg border-1 border-blue-950 bg-[#ffbd00] px-7 text-xs font-black text-blue-950 transition hover:bg-[#f2b200] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <CalendarDays className="h-3.5 w-3.5" />
                   {isSubmittingSchedule ? "Đang gửi..." : "Đặt lịch xem phòng"}
@@ -931,9 +948,6 @@ export default function RoomDetailsModal() {
                   <span className="flex items-center gap-1"><Ruler className="h-4 w-4 text-blue-600" />{selectedRoom.area} m²</span>
                   <span className="flex items-center gap-1"><Bath className="h-4 w-4 text-blue-600" />WC riêng</span>
                   <span className="flex items-center gap-1"><Snowflake className="h-4 w-4 text-blue-600" />Máy lạnh</span>
-                </div>
-                <div className="mt-4 rounded-lg bg-blue-50 p-3 text-xs font-semibold leading-5 text-blue-800">
-                  Lịch hẹn sẽ được xác nhận qua điện thoại hoặc Zalo trong vòng <strong>15 phút</strong>.
                 </div>
               </div>
             </aside>

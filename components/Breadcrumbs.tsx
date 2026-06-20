@@ -36,6 +36,21 @@ function getItemsFromPath(pathname: string, isEditPage: boolean): BreadcrumbItem
     ];
   }
 
+  if (pathname === "/pricing") {
+    return [
+      { label: "Trang chủ", href: "/" },
+      { label: "Bảng giá" },
+    ];
+  }
+
+  if (pathname.startsWith("/pricing/payment")) {
+    return [
+      { label: "Trang chủ", href: "/" },
+      { label: "Bảng giá", href: "/pricing" },
+      { label: "Thanh toán" },
+    ];
+  }
+
   return [{ label: "Trang chủ", href: "/" }];
 }
 

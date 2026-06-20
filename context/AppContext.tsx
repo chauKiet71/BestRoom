@@ -103,8 +103,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       setLoading(true);
       setError(null);
       const roomsData = await roomService.getRooms(
-        currentUser?.role,
-        currentUser?.id,
+        currentUser?.role === "admin" ? currentUser.role : undefined,
+        currentUser?.role === "admin" ? currentUser.id : undefined,
         currentUser?.role === "admin" ? undefined : { limit: 20 }
       );
       setRooms(roomsData);

@@ -41,7 +41,7 @@ export async function syncExpiredPlans(userId?: string) {
       SET status = 'expired'
       WHERE user_id = ${userId}
         AND status = 'active'
-        AND (end_at < CURRENT_TIMESTAMP OR remaining_posts <= 0)
+        AND end_at < CURRENT_TIMESTAMP
     `;
     return;
   }
@@ -50,7 +50,7 @@ export async function syncExpiredPlans(userId?: string) {
     UPDATE user_plan_purchases
     SET status = 'expired'
     WHERE status = 'active'
-      AND (end_at < CURRENT_TIMESTAMP OR remaining_posts <= 0)
+      AND end_at < CURRENT_TIMESTAMP
   `;
 }
 
@@ -62,13 +62,31 @@ export async function getActivePlanForUser(userId: string): Promise<UserPlanPurc
     FROM user_plan_purchases
     WHERE user_id = ${userId}
       AND status = 'active'
-      AND remaining_posts > 0
       AND end_at >= CURRENT_TIMESTAMP
     ORDER BY end_at ASC, created_at ASC
     LIMIT 1
   `;
 
-  return rows.length > 0 ? mapPurchaseFromDb(rows[0]) : null;
+  if (rows.length === 0) return null;
+
+  const purchase = mapPurchaseFromDb(rows[0]);
+  const usageRows = await sql`
+    SELECT COUNT(*)::int AS used
+    FROM rooms
+    WHERE owner_id = ${userId}
+      AND created_at >= ${new Date(purchase.startAt)}
+      AND created_at <= ${new Date(purchase.endAt)}
+  `;
+  const usedPosts = Number(usageRows[0]?.used || 0);
+  purchase.remainingPosts = Math.max(0, purchase.postLimit - usedPosts);
+
+  await sql`
+    UPDATE user_plan_purchases
+    SET remaining_posts = ${purchase.remainingPosts}
+    WHERE id = ${purchase.id}
+  `;
+
+  return purchase;
 }
 
 export async function activatePlanForUser(userId: string, plan: any, paymentId?: string) {
@@ -149,30 +167,10 @@ export async function consumePostingCredit(userId: string) {
 
   await syncExpiredPlans(userId);
 
-  const planRows = await sql`
-    UPDATE user_plan_purchases
-    SET remaining_posts = remaining_posts - 1
-    WHERE id = (
-      SELECT id
-      FROM user_plan_purchases
-      WHERE user_id = ${userId}
-        AND status = 'active'
-        AND remaining_posts > 0
-        AND end_at >= CURRENT_TIMESTAMP
-      ORDER BY end_at ASC, created_at ASC
-      LIMIT 1
-    )
-    RETURNING *
-  `;
-
-  if (planRows.length === 0) {
+  const activePlan = await getActivePlanForUser(userId);
+  if (!activePlan) {
     return { source: "none" as const };
   }
 
-  const purchase = mapPurchaseFromDb(planRows[0]);
-  if (purchase.remainingPosts <= 0) {
-    await syncExpiredPlans(userId);
-  }
-
-  return { source: "plan" as const, activePlan: purchase };
+  return { source: "plan" as const, activePlan };
 }

@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
       // Admin sees everything
     } else if (userRole === "user" && userId) {
       params.push(userId);
-      conditions.push(`(approval_status = 'approved' OR (owner_id = $${params.length} AND approval_status != 'rejected'))`);
+      conditions.push(`((approval_status = 'approved' AND COALESCE(expires_at, created_at + INTERVAL '30 days') >= CURRENT_TIMESTAMP) OR (owner_id = $${params.length} AND approval_status != 'rejected'))`);
     } else {
-      conditions.push(`approval_status = 'approved'`);
+      conditions.push(`approval_status = 'approved' AND COALESCE(expires_at, created_at + INTERVAL '30 days') >= CURRENT_TIMESTAMP`);
     }
 
     // Filters from search queries
@@ -310,7 +310,8 @@ export async function POST(request: NextRequest) {
       electricityPrice: Number(newRoom.electricityPrice || 3500),
       district: newRoom.district || "",
       ownerId: userId || null,
-      approvalStatus: userRole === "admin" ? "approved" : "pending"
+      approvalStatus: userRole === "admin" ? "approved" : "pending",
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
 
     const rows = await sql`
@@ -318,7 +319,7 @@ export async function POST(request: NextRequest) {
         id, room_type, title, description, price, area, city, district, ward, street, address_detailed,
         contact_name, contact_phone, image, images, is_shared_owner, rating,
         has_wifi, water_fee_type, status, hours_type, build_year, has_parking, parking_fee_type,
-        is_people_limited, max_people, has_elevator, has_contract, interested_count, created_at,
+        is_people_limited, max_people, has_elevator, has_contract, interested_count, created_at, expires_at,
         has_balcony, has_mezzanine, has_furniture, has_air_conditioner, electricity_price, owner_id, approval_status
       ) VALUES (
         ${preparedRoom.id},
@@ -351,6 +352,7 @@ export async function POST(request: NextRequest) {
         ${preparedRoom.hasContract !== false},
         ${preparedRoom.interestedCount},
         ${preparedRoom.createdAt},
+        ${preparedRoom.expiresAt},
         ${preparedRoom.hasBalcony},
         ${preparedRoom.hasMezzanine},
         ${preparedRoom.hasFurniture},

@@ -90,37 +90,7 @@ export default function PricingPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[28px] border border-blue-100 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.14),_transparent_34%),linear-gradient(135deg,#f8fbff_0%,#ffffff_45%,#fff8df_100%)] px-6 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:px-8 lg:px-10">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-              <Receipt className="h-4 w-4" />
-              Bảng giá đăng tin
-            </span>
-            <h1 className="mt-4 text-3xl font-black leading-tight text-blue-950 sm:text-4xl">
-              Miễn phí 3 bài đầu tiên, từ bài thứ 4 cần kích hoạt gói đăng tin
-            </h1>
-            <p className="mt-3 max-w-xl text-sm font-semibold leading-7 text-slate-600">
-              Mọi môi giới đều có thể bắt đầu miễn phí. Khi cần đăng thêm, bạn chỉ việc chọn gói phù hợp với số lượng bài đăng mong muốn.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-blue-100 bg-white/80 px-5 py-4">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Lượt miễn phí</p>
-              <p className="mt-2 text-3xl font-black text-blue-700">{currentUser?.freePostsRemaining ?? 3}/3</p>
-              <p className="mt-1 text-sm font-semibold text-slate-500">Còn lại cho tài khoản hiện tại</p>
-            </div>
-            <div className="rounded-2xl border border-amber-100 bg-white/80 px-5 py-4">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Gói đang hoạt động</p>
-              <p className="mt-2 text-lg font-black text-blue-950">{currentUser?.activePlan?.planName || "Chưa có gói"}</p>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                {currentUser?.activePlan ? `Còn ${currentUser.activePlan.remainingPosts} lượt đăng` : "Mua gói khi cần đăng bài thứ 4"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      
 
       {error && (
         <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-bold text-red-600">
@@ -142,12 +112,18 @@ export default function PricingPage() {
         </div>
       )}
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm font-semibold leading-6 text-blue-800">
+        Chủ trọ được đăng 3 tin miễn phí. Khi mua gói, bạn được đăng tối đa theo giới hạn của gói trong thời gian gói còn hiệu lực. Mỗi tin đăng sẽ hiển thị 30 ngày kể từ ngày đăng.
+      </div>
+
+      <section className="mt-10 grid items-center gap-7 lg:grid-cols-[0.96fr_1.08fr_0.96fr]">
         {plans.map((plan, index) => (
           <article
             key={plan.id}
-            className={`relative overflow-hidden rounded-[26px] border bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] ${
-              index === 1 ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"
+            className={`relative overflow-hidden rounded-[26px] border bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)] transition ${
+              index === 1
+                ? "min-h-[640px] border-blue-500 p-7 ring-2 ring-blue-100 lg:-my-5 lg:scale-[1.04]"
+                : "min-h-[590px] border-slate-200 p-6"
             }`}
           >
             {index === 1 && (

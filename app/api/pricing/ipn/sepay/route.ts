@@ -50,7 +50,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = await request.json();
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: true, ignored: true, reason: "Empty or invalid JSON payload." });
+    }
     const invoiceNumber = pickFirstValue(body, [
       "order_invoice_number",
       "invoice_number",
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
     ]));
 
     if (!invoiceNumber && !transferContent) {
-      return NextResponse.json({ success: false, error: "Missing payment reference." }, { status: 400 });
+      return NextResponse.json({ success: true, ignored: true, reason: "Missing payment reference." });
     }
 
     if (!isPaidEvent(body)) {
@@ -133,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (paymentRows.length === 0) {
-      return NextResponse.json({ success: false, error: "Payment not found." }, { status: 404 });
+      return NextResponse.json({ success: true, ignored: true, reason: "Payment not found." });
     }
 
     const payment = paymentRows[0];

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
+import { FREE_POST_LIMIT } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,12 +40,16 @@ export async function POST(request: NextRequest) {
       password,
       role: "user",
       experienceYears: "3 năm",
-      postPermissionStatus: "none"
+      postPermissionStatus: "none",
+      freePostsUsed: 0,
+      freePostsLimit: FREE_POST_LIMIT,
+      freePostsRemaining: FREE_POST_LIMIT,
+      activePlan: null
     };
 
     await sql`
-      INSERT INTO users (id, username, phone, email, password, role, post_permission_status)
-      VALUES (${newUser.id}, ${newUser.username}, ${newUser.phone}, ${newUser.email}, ${newUser.password}, ${newUser.role}, ${newUser.postPermissionStatus})
+      INSERT INTO users (id, username, phone, email, password, role, post_permission_status, free_posts_used)
+      VALUES (${newUser.id}, ${newUser.username}, ${newUser.phone}, ${newUser.email}, ${newUser.password}, ${newUser.role}, ${newUser.postPermissionStatus}, 0)
     `;
 
     const { password: _, ...safeUser } = newUser;

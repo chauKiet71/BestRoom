@@ -16,8 +16,8 @@ interface HeaderProps {
 const navItems = [
   { href: "/", label: "Trang chủ" },
   { href: "/search", label: "Tìm phòng" },
+  { href: "/pricing", label: "Bảng giá" },
   { href: "/admin", label: "Đăng tin" },
-  // { href: "#pricing", label: "Bảng giá" },
   { href: "/favorites", label: "Yêu thích" },
 ];
 
@@ -30,8 +30,8 @@ export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
   const [isRequestingPostPermission, setIsRequestingPostPermission] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const canPost = currentUser?.role === "admin" || currentUser?.postPermissionStatus === "approved";
-  const postButtonLabel = canPost ? "Đăng tin" : "Đăng tin miễn phí";
+  const canPost = currentUser?.role === "admin" || (currentUser?.freePostsRemaining || 0) > 0 || (currentUser?.activePlan?.remainingPosts || 0) > 0;
+  const postButtonLabel = currentUser ? (canPost ? "Đăng tin" : "Mua gói đăng tin") : "Đăng tin miễn phí";
 
   useEffect(() => {
     setMounted(true);
@@ -57,8 +57,11 @@ export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
         const freshUser = await userService.getUser(currentUser.id);
         if (cancelled) return;
         if (
-          freshUser.postPermissionStatus !== currentUser.postPermissionStatus ||
-          freshUser.role !== currentUser.role
+          freshUser.role !== currentUser.role ||
+          freshUser.freePostsUsed !== currentUser.freePostsUsed ||
+          freshUser.freePostsRemaining !== currentUser.freePostsRemaining ||
+          freshUser.activePlan?.id !== currentUser.activePlan?.id ||
+          freshUser.activePlan?.remainingPosts !== currentUser.activePlan?.remainingPosts
         ) {
           const updatedUser = { ...currentUser, ...freshUser };
           setCurrentUser(updatedUser);
@@ -70,16 +73,14 @@ export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
     };
 
     window.addEventListener("focus", syncCurrentUser);
-    const intervalId = currentUser.postPermissionStatus === "pending"
-      ? window.setInterval(syncCurrentUser, 10000)
-      : null;
+    const intervalId = window.setInterval(syncCurrentUser, 15000);
 
     return () => {
       cancelled = true;
       window.removeEventListener("focus", syncCurrentUser);
       if (intervalId) window.clearInterval(intervalId);
     };
-  }, [currentUser?.id, currentUser?.postPermissionStatus, currentUser?.role, setCurrentUser]);
+  }, [currentUser?.id, currentUser?.role, currentUser?.freePostsUsed, currentUser?.freePostsRemaining, currentUser?.activePlan?.id, currentUser?.activePlan?.remainingPosts, setCurrentUser]);
 
   const goHome = () => {
     resetFilters();
@@ -92,30 +93,12 @@ export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
       return;
     }
 
-    if (currentUser.role === "admin" || currentUser.postPermissionStatus === "approved") {
+    if (currentUser.role === "admin" || canPost) {
       router.push(`/user/${currentUser.username}?edit&tab=listing`);
       return;
     }
 
-    if (currentUser.postPermissionStatus === "pending") {
-      alert("Yêu cầu đăng tin của bạn đang chờ admin duyệt.");
-      return;
-    }
-
-    try {
-      setIsRequestingPostPermission(true);
-      const data = await userService.updatePostPermission(currentUser.id, "request", currentUser.role, currentUser.id);
-      if (data.success) {
-        const updatedUser = { ...currentUser, ...data.user };
-        setCurrentUser(updatedUser);
-        localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
-        alert("Đã gửi yêu cầu đăng tin đến admin. Sau khi được duyệt, nút này sẽ chuyển thành Đăng tin.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Không thể gửi yêu cầu đăng tin lúc này.");
-    } finally {
-      setIsRequestingPostPermission(false);
-    }
+    router.push("/pricing");
   };
 
   return (

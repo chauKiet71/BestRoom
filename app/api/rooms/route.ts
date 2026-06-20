@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapRoomFromDb } from "@/lib/mappers";
+import { consumePostingCredit, getUserPostingStats } from "@/lib/pricing";
 import { filterRooms, getDefaultRooms } from "@/lib/roomData";
 
 export async function GET(request: NextRequest) {
@@ -270,14 +271,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (userRole === "user") {
-      const permissionRows = await sql`
-        SELECT post_permission_status
-        FROM users
-        WHERE id = ${userId}
-      `;
-      if (permissionRows[0]?.post_permission_status !== "approved") {
+      const postingStats = await getUserPostingStats(userId || "");
+      const hasQuota = postingStats.freePostsRemaining > 0 || (postingStats.activePlan?.remainingPosts || 0) > 0;
+      if (!hasQuota) {
         return NextResponse.json(
-          { error: "Tài khoản của bạn cần được admin duyệt quyền đăng tin trước." },
+          { error: "Bạn đã dùng hết 3 bài miễn phí. Vui lòng mua gói để tiếp tục đăng tin." },
           { status: 403 }
         );
       }
@@ -363,6 +361,17 @@ export async function POST(request: NextRequest) {
       )
       RETURNING *
     `;
+
+    if (userRole === "user" && userId) {
+      const quotaResult = await consumePostingCredit(userId);
+      if (quotaResult.source === "none") {
+        await sql`DELETE FROM rooms WHERE id = ${preparedRoom.id}`;
+        return NextResponse.json(
+          { error: "Bạn đã hết lượt đăng tin miễn phí và chưa có gói còn hiệu lực." },
+          { status: 403 }
+        );
+      }
+    }
 
     return NextResponse.json(mapRoomFromDb(rows[0]), { status: 201 });
   } catch (err: any) {

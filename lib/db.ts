@@ -130,6 +130,52 @@ async function _initSchema(): Promise<void> {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS pricing_plans (
+      id             VARCHAR(50) PRIMARY KEY,
+      name           VARCHAR(120) NOT NULL,
+      description    TEXT         DEFAULT '',
+      price          INT          NOT NULL DEFAULT 0,
+      post_limit     INT          NOT NULL DEFAULT 0,
+      duration_days  INT          NOT NULL DEFAULT 30,
+      is_active      BOOLEAN      DEFAULT TRUE,
+      created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_plan_purchases (
+      id              VARCHAR(50) PRIMARY KEY,
+      user_id         VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+      plan_id         VARCHAR(50) REFERENCES pricing_plans(id) ON DELETE CASCADE,
+      plan_name       VARCHAR(120) NOT NULL,
+      price_paid      INT          NOT NULL DEFAULT 0,
+      post_limit      INT          NOT NULL DEFAULT 0,
+      remaining_posts INT          NOT NULL DEFAULT 0,
+      status          VARCHAR(30)  NOT NULL DEFAULT 'active',
+      start_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+      end_at          TIMESTAMP    NOT NULL,
+      created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS plan_payments (
+      id              VARCHAR(50) PRIMARY KEY,
+      invoice_number  VARCHAR(80) UNIQUE NOT NULL,
+      user_id         VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+      plan_id         VARCHAR(50) REFERENCES pricing_plans(id) ON DELETE CASCADE,
+      amount          INT          NOT NULL DEFAULT 0,
+      status          VARCHAR(30)  NOT NULL DEFAULT 'pending',
+      provider        VARCHAR(30)  NOT NULL DEFAULT 'sepay',
+      provider_ref    VARCHAR(120) DEFAULT '',
+      checkout_fields JSONB        DEFAULT '{}'::jsonb,
+      paid_at         TIMESTAMP,
+      created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+      updated_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS district          VARCHAR(100) DEFAULT ''`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS room_type         VARCHAR(50)  DEFAULT 'Phòng trọ'`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS has_balcony       BOOLEAN      DEFAULT FALSE`;
@@ -146,4 +192,16 @@ async function _initSchema(): Promise<void> {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_years   VARCHAR(50) DEFAULT '3 năm'`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS working_hours      VARCHAR(100) DEFAULT '8:00 - 21:00 (T2 - CN)'`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS post_permission_status VARCHAR(30) DEFAULT 'none'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS free_posts_used    INT DEFAULT 0`;
+
+  const plansCount = await sql`SELECT COUNT(*)::int AS count FROM pricing_plans`;
+  if (Number(plansCount[0]?.count || 0) === 0) {
+    await sql`
+      INSERT INTO pricing_plans (id, name, description, price, post_limit, duration_days, is_active)
+      VALUES
+        ('plan-basic', 'Gói Cơ Bản', 'Phù hợp cho môi giới mới cần thêm lượt đăng sau 3 bài miễn phí.', 99000, 10, 30, TRUE),
+        ('plan-pro', 'Gói Chuyên Nghiệp', 'Gia tăng số lượng bài đăng cho môi giới hoạt động thường xuyên.', 199000, 25, 45, TRUE),
+        ('plan-max', 'Gói Tối Đa', 'Tối ưu cho đội nhóm hoặc môi giới có nhu cầu đăng tin số lượng lớn.', 349000, 50, 60, TRUE)
+    `;
+  }
 }

@@ -27,7 +27,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { BoardingRoom, ROOM_TYPE_OPTIONS } from "@/types";
-import { userService } from "@/services/userService";
 import { roomDetailPath } from "@/lib/routes";
 import PageLoader from "@/components/PageLoader";
 
@@ -262,14 +261,12 @@ export default function HomePage() {
     isFavoriteRoom,
     toggleFavoriteRoom,
     currentUser,
-    setCurrentUser,
     setAuthModalMode,
     setIsAuthModalOpen,
   } = useApp();
   const [activeBrokerPage, setActiveBrokerPage] = useState(0);
   const [provinces, setProvinces] = useState<Array<{ code: number; name: string }>>([]);
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
-  const [isRequestingPostPermission, setIsRequestingPostPermission] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -331,30 +328,12 @@ export default function HomePage() {
       return;
     }
 
-    if (currentUser.role === "admin" || currentUser.postPermissionStatus === "approved") {
+    if (currentUser.role === "admin" || (currentUser.freePostsRemaining || 0) > 0 || (currentUser.activePlan?.remainingPosts || 0) > 0) {
       router.push(`/user/${currentUser.username}?edit&tab=listing`);
       return;
     }
 
-    if (currentUser.postPermissionStatus === "pending") {
-      alert("Yêu cầu đăng tin của bạn đang chờ admin duyệt.");
-      return;
-    }
-
-    try {
-      setIsRequestingPostPermission(true);
-      const data = await userService.updatePostPermission(currentUser.id, "request", currentUser.role, currentUser.id);
-      if (data.success) {
-        const updatedUser = { ...currentUser, ...data.user };
-        setCurrentUser(updatedUser);
-        localStorage.setItem("bestroom_user", JSON.stringify(updatedUser));
-        alert("Đã gửi yêu cầu đăng tin đến admin. Sau khi được duyệt, bạn có thể vào giao diện đăng tin phòng trọ.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Không thể gửi yêu cầu đăng tin lúc này.");
-    } finally {
-      setIsRequestingPostPermission(false);
-    }
+    router.push("/pricing");
   };
 
   const applyPrice = (value: string) => {
@@ -762,7 +741,6 @@ export default function HomePage() {
         <button
           type="button"
           onClick={handlePostRoomBannerClick}
-          disabled={isRequestingPostPermission}
           className="block w-full overflow-hidden rounded-xl border border-amber-200 bg-white p-0 "
           aria-label="Đăng tin miễn phí dành cho chủ trọ"
         >

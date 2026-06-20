@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapUserFromDb } from "@/lib/mappers";
+import { getUserPostingStats } from "@/lib/pricing";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,16 +18,16 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status 
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status, free_posts_used 
       FROM users 
       ORDER BY role DESC, username ASC
     `;
 
-    // Map rows safely (excluding password hashes)
-    const users = rows.map((r) => {
+    const users = await Promise.all(rows.map(async (r) => {
       const { password: _password, ...safeUser } = mapUserFromDb(r);
-      return safeUser;
-    });
+      const postingStats = await getUserPostingStats(safeUser.id);
+      return { ...safeUser, ...postingStats };
+    }));
 
     return NextResponse.json(users);
   } catch (err: any) {

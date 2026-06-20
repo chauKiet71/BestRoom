@@ -34,9 +34,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { BoardingRoom, ROOM_TYPE_OPTIONS } from "@/types";
+import { BoardingRoom, PricingPlan, ROOM_TYPE_OPTIONS } from "@/types";
 import { roomService } from "@/services/roomService";
 import { userService } from "@/services/userService";
+import { pricingService } from "@/services/pricingService";
 import RoomCard from "@/components/RoomCard";
 import PageLoader from "@/components/PageLoader";
 
@@ -73,8 +74,12 @@ export default function AdminPage() {
   const [showManualUrlsInput, setShowManualUrlsInput] = useState(false);
 
   // States for user management dashboard
-  const [activeTab, setActiveTab] = useState<"rooms" | "users">("rooms");
+  const [activeTab, setActiveTab] = useState<"rooms" | "users" | "packages">("rooms");
+  const [activeAdminMenu, setActiveAdminMenu] = useState("listings");
   const [usersList, setUsersList] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [isPlansLoading, setIsPlansLoading] = useState(false);
+  const [planForm, setPlanForm] = useState<Partial<PricingPlan> | null>(null);
   const [selectedOwnerFilter, setSelectedOwnerFilter] = useState<string>("all");
   const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
@@ -284,6 +289,36 @@ export default function AdminPage() {
         });
     }
   }, [currentUser, isAdminModalOpen]);
+
+  useEffect(() => {
+    if (currentUser?.role !== "admin") return;
+    setIsPlansLoading(true);
+    pricingService.getPlans(currentUser.role, currentUser.id)
+      .then((data) => setPlans(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error fetching plans:", err))
+      .finally(() => setIsPlansLoading(false));
+  }, [currentUser]);
+
+  const handleOpenPlanForm = (plan?: PricingPlan) => {
+    setPlanForm(plan ? { ...plan } : { name: "", description: "", price: 99000, postLimit: 10, durationDays: 30, isActive: true });
+  };
+
+  const handleSavePlan = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!currentUser || !planForm) return;
+
+    try {
+      const data = await pricingService.savePlan(planForm, currentUser.role, currentUser.id);
+      const savedPlan = data.plan;
+      setPlans((prev) => {
+        const exists = prev.some((plan) => plan.id === savedPlan.id);
+        return exists ? prev.map((plan) => (plan.id === savedPlan.id ? { ...plan, ...savedPlan } : plan)) : [...prev, savedPlan];
+      });
+      setPlanForm(null);
+    } catch (err: any) {
+      alert(err.message || "Không thể lưu gói dịch vụ.");
+    }
+  };
 
   const handleToggleUserRole = async (targetUser: any) => {
     const newRole = targetUser.role === "admin" ? "user" : "admin";
@@ -589,6 +624,8 @@ export default function AdminPage() {
         usersList={usersList}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        activeAdminMenu={activeAdminMenu}
+        setActiveAdminMenu={setActiveAdminMenu}
         selectedOwnerFilter={selectedOwnerFilter}
         setSelectedOwnerFilter={setSelectedOwnerFilter}
         adminSearchQuery={adminSearchQuery}
@@ -610,12 +647,19 @@ export default function AdminPage() {
         unavailablePercent={unavailablePercent}
         ownerNameById={ownerNameById}
         isUsersLoading={isUsersLoading}
+        plans={plans}
+        isPlansLoading={isPlansLoading}
+        planForm={planForm}
         onViewRoom={viewRoomDetails}
         onEditRoom={handleOpenEditModal}
         onDeleteRoom={handleRequestDeleteRoom}
         onApproveRoom={handleApproveRoom}
         onRejectRoom={handleRejectRoom}
         onAddRoom={handleOpenAddModal}
+        onOpenPlanForm={handleOpenPlanForm}
+        onClosePlanForm={() => setPlanForm(null)}
+        onSavePlan={handleSavePlan}
+        setPlanForm={setPlanForm}
         onToggleUserRole={handleToggleUserRole}
         onDeleteUser={handleDeleteUser}
         onUpdatePostPermission={handleUpdatePostPermission}
@@ -656,13 +700,13 @@ export default function AdminPage() {
           <h2 className="text-xl md:text-2xl font-black text-gray-900 flex items-center gap-2">
             <ShieldCheck className="h-7 w-7 text-blue-600" />
             {currentUser.role === "admin"
-              ? "Trang QuÃ¡ÂºÂ£n TrÃ¡Â»â€¹ HÃ¡Â»â€¡ ThÃ¡Â»â€˜ng PhÃƒÂ²ng TrÃ¡Â»Â (Admin)"
-              : "Ã„ÂÃ„Æ’ng & QuÃ¡ÂºÂ£n LÃƒÂ½ Danh SÃƒÂ¡ch PhÃƒÂ²ng TrÃ¡Â»Â"}
+              ? "Trang Quản Trị Hệ Thống Phòng Trọ (Admin)"
+              : "Đăng & Quản Lý Danh Sách Phòng Trọ"}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {currentUser.role === "admin"
-              ? "ThÃ¡Â»Â±c hiÃ¡Â»â€¡n quÃ¡ÂºÂ£n trÃ¡Â»â€¹ hÃ¡Â»â€¡ thÃ¡Â»â€˜ng, quÃ¡ÂºÂ£n lÃƒÂ½ tÃƒÂ i khoÃ¡ÂºÂ£n thÃƒÂ nh viÃƒÂªn, xoÃƒÂ¡ bÃƒÂ i Ã„â€˜Ã„Æ’ng vi phÃ¡ÂºÂ¡m hoÃ¡ÂºÂ·c lÃ¡Â»Âc bÃƒÂ i viÃ¡ÂºÂ¿t theo tÃ¡Â»Â«ng chÃ¡Â»Â§ trÃ¡Â»Â."
-              : "Ã„ÂÃ„Æ’ng phÃƒÂ²ng trÃ¡Â»Â mÃ¡Â»â€ºi cÃ¡Â»Â§a bÃ¡ÂºÂ¡n lÃƒÂªn hÃ¡Â»â€¡ thÃ¡Â»â€˜ng, quÃ¡ÂºÂ£n lÃƒÂ½ trÃ¡ÂºÂ¡ng thÃƒÂ¡i cÃƒÂ²n phÃƒÂ²ng/hÃ¡ÂºÂ¿t phÃƒÂ²ng, vÃƒÂ  chÃ¡Â»â€°nh sÃ¡Â»Â­a thÃƒÂ´ng tin chi tiÃ¡ÂºÂ¿t."}
+              ? "Thực hiện quản trị hệ thống, quản lý tài khoản thành viên, xoá bài đăng vi phạm hoặc lọc bài viết theo từng chủ trọ."
+              : "Đăng phòng trọ mới của bạn lên hệ thống, quản lý trạng thái còn phòng/hết phòng, và chỉnh sửa thông tin chi tiết."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
@@ -673,14 +717,14 @@ export default function AdminPage() {
               if (typeof window !== "undefined") {
                 const profileUrl = `${window.location.origin}/user/${encodeURIComponent(currentUser.username)}`;
                 navigator.clipboard.writeText(profileUrl)
-                  .then(() => alert("Ã„ÂÃƒÂ£ sao chÃƒÂ©p liÃƒÂªn kÃ¡ÂºÂ¿t trang cÃƒÂ¡ nhÃƒÂ¢n cÃ¡Â»Â§a bÃ¡ÂºÂ¡n vÃƒÂ o bÃ¡Â»â„¢ nhÃ¡Â»â€º tÃ¡ÂºÂ¡m!"))
-                  .catch(() => alert("KhÃƒÂ´ng thÃ¡Â»Æ’ sao chÃƒÂ©p liÃƒÂªn kÃ¡ÂºÂ¿t. URL cÃ¡Â»Â§a bÃ¡ÂºÂ¡n: " + profileUrl));
+                  .then(() => alert("Đã sao chép liên kết trang cá nhân của bạn vào bộ nhớ tạm!"))
+                  .catch(() => alert("Không thể sao chép liên kết. URL của bạn: " + profileUrl));
               }
             }}
             className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-750 font-bold text-xs py-3 px-4 rounded-xl transition-all duration-150 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer border-solid"
           >
             <Share2 className="h-4 w-4 text-blue-600" />
-            <span>Chia sÃ¡ÂºÂ» trang cÃƒÂ¡ nhÃƒÂ¢n</span>
+            <span>Chia sẻ trang cá nhân</span>
           </button>
 
           <button
@@ -689,7 +733,7 @@ export default function AdminPage() {
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 px-5 rounded-xl transition-all duration-150 shadow-md flex items-center justify-center gap-2 cursor-pointer border-none"
           >
             <Plus className="h-4 w-4" />
-            Ã„ÂÃ„Æ’ng phÃƒÂ²ng trÃ¡Â»Â mÃ¡Â»â€ºi
+            Đăng phòng trọ mới
           </button>
         </div>
       </div>
@@ -705,7 +749,7 @@ export default function AdminPage() {
                 : "border-transparent text-gray-500 hover:text-gray-900"
             }`}
           >
-            QuÃ¡ÂºÂ£n LÃƒÂ½ PhÃƒÂ²ng TrÃ¡Â»Â ({rooms.length})
+            Quản Lý Phòng Trọ ({rooms.length})
           </button>
           <button
             onClick={() => setActiveTab("users")}
@@ -715,7 +759,7 @@ export default function AdminPage() {
                 : "border-transparent text-gray-500 hover:text-gray-900"
             }`}
           >
-            QuÃ¡ÂºÂ£n LÃƒÂ½ ThÃƒÂ nh ViÃƒÂªn ({usersList.length})
+            Quản Lý Thành Viên ({usersList.length})
           </button>
         </div>
       )}
@@ -724,23 +768,23 @@ export default function AdminPage() {
       {currentUser.role === "admin" && activeTab === "rooms" && (
         <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 mb-6 animate-fade-in">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">LÃ¡Â»Âc theo ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã„Æ’ng:</span>
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Lọc theo người đăng:</span>
             <select
               value={selectedOwnerFilter}
               onChange={(e) => setSelectedOwnerFilter(e.target.value)}
               className="text-xs border border-gray-200 rounded-lg bg-white px-3 py-1.5 outline-none font-semibold text-slate-700 focus:border-blue-500"
             >
-              <option value="all">-- TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£ bÃƒÂ i Ã„â€˜Ã„Æ’ng ({rooms.length}) --</option>
-              <option value="system">HÃ¡Â»â€¡ thÃ¡Â»â€˜ng / Admin ({rooms.filter((r) => !r.ownerId).length})</option>
+              <option value="all">-- Tất cả bài đăng ({rooms.length}) --</option>
+              <option value="system">Hệ thống / Admin ({rooms.filter((r) => !r.ownerId).length})</option>
               {usersList.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.username} ({user.role === "admin" ? "Admin" : "ChÃ¡Â»Â§ trÃ¡Â»Â"}) - {rooms.filter((r) => r.ownerId === user.id).length} bÃƒÂ i Ã„â€˜Ã„Æ’ng
+                  {user.username} ({user.role === "admin" ? "Admin" : "Chủ trọ"}) - {rooms.filter((r) => r.ownerId === user.id).length} bài đăng
                 </option>
               ))}
             </select>
           </div>
           <div className="text-xs text-slate-400 font-medium">
-            HiÃ¡Â»Æ’n thÃ¡Â»â€¹ <span className="font-bold text-slate-750">{displayedRooms.length}</span> phÃƒÂ²ng trÃ¡Â»Â
+            Hiển thị <span className="font-bold text-slate-750">{displayedRooms.length}</span> phòng trọ
           </div>
         </div>
       )}
@@ -768,14 +812,14 @@ export default function AdminPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
               <p className="text-gray-400 text-sm">
                 {currentUser.role === "admin"
-                  ? "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y phÃƒÂ²ng trÃ¡Â»Â nÃƒÂ o cÃ¡Â»Â§a ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã„Æ’ng nÃƒÂ y."
-                  : "BÃ¡ÂºÂ¡n chÃ†Â°a Ã„â€˜Ã„Æ’ng phÃƒÂ²ng trÃ¡Â»Â nÃƒÂ o trÃƒÂªn hÃ¡Â»â€¡ thÃ¡Â»â€˜ng."}
+                  ? "Không tìm thấy phòng trọ nào của người đăng này."
+                  : "Bạn chưa đăng phòng trọ nào trên hệ thống."}
               </p>
               <button
                 onClick={handleOpenAddModal}
                 className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl text-center border-none cursor-pointer"
               >
-                Ã„ÂÃ„Æ’ng phÃƒÂ²ng Ã„â€˜Ã¡ÂºÂ§u tiÃƒÂªn
+                Đăng phòng đầu tiên
               </button>
             </div>
           )}
@@ -787,11 +831,11 @@ export default function AdminPage() {
         <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-xs animate-scale-up">
           <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
             <div>
-              <h3 className="text-sm sm:text-base font-black text-gray-900">Danh SÃƒÂ¡ch TÃƒÂ i KhoÃ¡ÂºÂ£n ThÃƒÂ nh ViÃƒÂªn</h3>
-              <p className="text-[10px] text-gray-400 mt-0.5">QuÃ¡ÂºÂ£n lÃƒÂ½ nÃƒÂ¢ng cÃ¡ÂºÂ¥p/hÃ¡ÂºÂ¡ cÃ¡ÂºÂ¥p vai trÃƒÂ² thÃƒÂ nh viÃƒÂªn hoÃ¡ÂºÂ·c xoÃƒÂ¡ vÃ„Â©nh viÃ¡Â»â€¦n tÃƒÂ i khoÃ¡ÂºÂ£n.</p>
+              <h3 className="text-sm sm:text-base font-black text-gray-900">Danh Sách Tài Khoản Thành Viên</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5">Quản lý nâng cấp/hạ cấp vai trò thành viên hoặc xoá vĩnh viễn tài khoản.</p>
             </div>
             <span className="text-xs text-gray-500 font-bold font-mono uppercase bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
-              TÃ¡Â»â€¢ng sÃ¡Â»â€˜: {usersList.length}
+              Tổng số: {usersList.length}
             </span>
           </div>
 
@@ -799,17 +843,17 @@ export default function AdminPage() {
             {isUsersLoading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
                 <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                <span className="text-xs text-gray-400 font-medium">Ã„Âang tÃ¡ÂºÂ£i danh sÃƒÂ¡ch thÃƒÂ nh viÃƒÂªn...</span>
+                <span className="text-xs text-gray-400 font-medium">Đang tải danh sách thành viên...</span>
               </div>
             ) : usersList.length > 0 ? (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-50 text-gray-500 font-bold uppercase border-b border-gray-100">
-                    <th className="px-6 py-3.5">TÃƒÂªn Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p</th>
+                    <th className="px-6 py-3.5">Tên đăng nhập</th>
                     <th className="px-6 py-3.5">Email</th>
-                    <th className="px-6 py-3.5">SÃ¡Â»â€˜ Ã„â€˜iÃ¡Â»â€¡n thoÃ¡ÂºÂ¡i</th>
-                    <th className="px-6 py-3.5">Vai trÃƒÂ²</th>
-                    <th className="px-6 py-3.5 text-right">Thao tÃƒÂ¡c</th>
+                    <th className="px-6 py-3.5">Số điện thoại</th>
+                    <th className="px-6 py-3.5">Vai trò</th>
+                    <th className="px-6 py-3.5 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -827,7 +871,7 @@ export default function AdminPage() {
                               ? "bg-amber-100 text-amber-850 hover:bg-amber-200 border-none"
                               : "bg-blue-50 text-blue-600 hover:bg-blue-150 border-none"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          title={user.id === currentUser?.id ? "KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡Â»Â± thay Ã„â€˜Ã¡Â»â€¢i vai trÃƒÂ² bÃ¡ÂºÂ£n thÃƒÂ¢n" : "NhÃ¡ÂºÂ¥p Ã„â€˜Ã¡Â»Æ’ thay Ã„â€˜Ã¡Â»â€¢i vai trÃƒÂ²"}
+                          title={user.id === currentUser?.id ? "Không thể tự thay đổi vai trò bản thân" : "Nhấp để thay đổi vai trò"}
                         >
                           {user.role}
                         </button>
@@ -837,7 +881,7 @@ export default function AdminPage() {
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={user.id === currentUser?.id}
                           className="text-red-500 hover:text-white hover:bg-red-600 p-1.5 rounded-xl transition-all border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={user.id === currentUser?.id ? "KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡Â»Â± xoÃƒÂ¡ tÃƒÂ i khoÃ¡ÂºÂ£n bÃ¡ÂºÂ£n thÃƒÂ¢n" : "XoÃƒÂ¡ tÃƒÂ i khoÃ¡ÂºÂ£n & toÃƒÂ n bÃ¡Â»â„¢ bÃƒÂ i Ã„â€˜Ã„Æ’ng"}
+                          title={user.id === currentUser?.id ? "Không thể tự xoá tài khoản bản thân" : "Xoá tài khoản & toàn bộ bài đăng"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -847,7 +891,7 @@ export default function AdminPage() {
                 </tbody>
               </table>
             ) : (
-              <div className="text-center py-12 text-gray-400 italic">ChÃ†Â°a cÃƒÂ³ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng nÃƒÂ o Ã„â€˜Ã„Æ’ng kÃƒÂ½ trong hÃ¡Â»â€¡ thÃ¡Â»â€˜ng.</div>
+              <div className="text-center py-12 text-gray-400 italic">Chưa có người dùng nào đăng ký trong hệ thống.</div>
             )}
           </div>
         </div>
@@ -1504,6 +1548,8 @@ function AdminListingsDashboard({
   usersList,
   activeTab,
   setActiveTab,
+  activeAdminMenu,
+  setActiveAdminMenu,
   selectedOwnerFilter,
   setSelectedOwnerFilter,
   adminSearchQuery,
@@ -1524,24 +1570,31 @@ function AdminListingsDashboard({
   unavailablePercent,
   ownerNameById,
   isUsersLoading,
+  plans,
+  isPlansLoading,
+  planForm,
   onViewRoom,
   onEditRoom,
   onDeleteRoom,
   onApproveRoom,
   onRejectRoom,
   onAddRoom,
+  onOpenPlanForm,
+  onClosePlanForm,
+  onSavePlan,
+  setPlanForm,
   onToggleUserRole,
   onDeleteUser,
   onUpdatePostPermission,
 }: any) {
   const navItems = [
-    { icon: LayoutDashboard, label: "Tổng quan", tab: "rooms" },
-    { icon: Users, label: "Quản lí người dùng", tab: "users" },
-    { icon: FileText, label: "Quản lí tin đăng", tab: "rooms", active: true },
-    { icon: ShieldCheck, label: "Duyệt tin", tab: "rooms" },
-    { icon: Package, label: "Gói dịch vụ", tab: "rooms" },
-    { icon: BarChart3, label: "Báo cáo", tab: "rooms" },
-    { icon: Settings, label: "Cài đặt", tab: "rooms" },
+    { key: "overview", icon: LayoutDashboard, label: "Tổng quan", tab: "rooms" },
+    { key: "users", icon: Users, label: "Quản lí người dùng", tab: "users" },
+    { key: "listings", icon: FileText, label: "Quản lí tin đăng", tab: "rooms" },
+    { key: "review", icon: ShieldCheck, label: "Duyệt tin", tab: "rooms" },
+    { key: "packages", icon: Package, label: "Gói dịch vụ", tab: "packages" },
+    { key: "reports", icon: BarChart3, label: "Báo cáo", tab: "rooms" },
+    { key: "settings", icon: Settings, label: "Cài đặt", tab: "rooms" },
   ];
 
   return (
@@ -1556,9 +1609,13 @@ function AdminListingsDashboard({
             <button
               key={item.label}
               type="button"
-              onClick={() => currentUser.role === "admin" && setActiveTab(item.tab)}
+              onClick={() => {
+                if (currentUser.role !== "admin") return;
+                setActiveAdminMenu(item.key);
+                setActiveTab(item.tab);
+              }}
               className={`flex h-12 w-full items-center gap-4 rounded-lg px-4 text-sm font-bold transition ${
-                (item.active && activeTab === "rooms") || (item.tab === "users" && activeTab === "users")
+                activeAdminMenu === item.key
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-950/20"
                   : "text-blue-50/90 hover:bg-white/10"
               }`}
@@ -1755,8 +1812,10 @@ function AdminListingsDashboard({
               </aside>
             </div>
           </div>
+        ) : activeTab === "users" ? (
+          <AdminUsersPanel usersList={usersList} isUsersLoading={isUsersLoading} />
         ) : (
-          <AdminUsersPanel currentUser={currentUser} usersList={usersList} isUsersLoading={isUsersLoading} onToggleUserRole={onToggleUserRole} onDeleteUser={onDeleteUser} onUpdatePostPermission={onUpdatePostPermission} />
+          <AdminPlansPanel plans={plans} isPlansLoading={isPlansLoading} planForm={planForm} onOpenPlanForm={onOpenPlanForm} onClosePlanForm={onClosePlanForm} onSavePlan={onSavePlan} setPlanForm={setPlanForm} />
         )}
       </section>
     </div>
@@ -1812,26 +1871,13 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
   );
 }
 
-function AdminUsersPanel({ currentUser, usersList, isUsersLoading, onToggleUserRole, onDeleteUser, onUpdatePostPermission }: any) {
-  const permissionBadge = (status?: string) => {
-    if (status === "approved") return "border-emerald-200 bg-emerald-50 text-emerald-600";
-    if (status === "pending") return "border-amber-200 bg-amber-50 text-amber-600";
-    if (status === "rejected") return "border-red-200 bg-red-50 text-red-600";
-    return "border-slate-200 bg-slate-50 text-slate-500";
-  };
-  const permissionLabel = (status?: string) => {
-    if (status === "approved") return "Đã duyệt";
-    if (status === "pending") return "Chờ duyệt";
-    if (status === "rejected") return "Từ chối";
-    return "Chưa yêu cầu";
-  };
-
+function AdminUsersPanel({ usersList, isUsersLoading }: any) {
   return (
     <div className="p-5 lg:p-8">
       <div className="rounded-lg border border-gray-100 bg-white shadow-sm">
         <div className="border-b border-gray-50 bg-gray-50/50 px-6 py-4">
           <h3 className="text-base font-black text-gray-900">Danh sách tài khoản thành viên</h3>
-          <p className="mt-0.5 text-xs text-gray-400">Quản lí nâng cấp/hạ cấp vai trò thành viên hoặc xoá vĩnh viễn tài khoản.</p>
+          <p className="mt-0.5 text-xs text-gray-400">Theo dõi trạng thái đăng tin, lượt miễn phí còn lại và gói đang hoạt động của từng môi giới.</p>
         </div>
         <div className="overflow-x-auto">
           {isUsersLoading ? (
@@ -1847,8 +1893,8 @@ function AdminUsersPanel({ currentUser, usersList, isUsersLoading, onToggleUserR
                   <th className="px-6 py-3.5">Email</th>
                   <th className="px-6 py-3.5">Số điện thoại</th>
                   <th className="px-6 py-3.5">Vai trò</th>
-                  <th className="px-6 py-3.5">Quyền đăng tin</th>
-                  <th className="px-6 py-3.5 text-right">Thao tác</th>
+                  <th className="px-6 py-3.5">Miễn phí còn lại</th>
+                  <th className="px-6 py-3.5">Gói hiện tại</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -1858,31 +1904,20 @@ function AdminUsersPanel({ currentUser, usersList, isUsersLoading, onToggleUserR
                     <td className="px-6 py-4 font-medium text-gray-600">{user.email}</td>
                     <td className="px-6 py-4 font-mono font-bold text-gray-600">{user.phone}</td>
                     <td className="px-6 py-4">
-                      <button onClick={() => onToggleUserRole(user)} disabled={user.id === currentUser?.id} className={`rounded px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${user.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-50 text-blue-600"} disabled:opacity-50`}>
+                      <span className={`rounded px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${user.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-blue-50 text-blue-600"}`}>
                         {user.role}
-                      </button>
+                      </span>
                     </td>
+                    <td className="px-6 py-4 font-black text-blue-700">{user.freePostsRemaining ?? 3}/3</td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-black ${permissionBadge(user.postPermissionStatus)}`}>
-                          {permissionLabel(user.postPermissionStatus)}
-                        </span>
-                        {user.postPermissionStatus === "pending" && (
-                          <>
-                            <button onClick={() => onUpdatePostPermission(user, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1 text-[10px] font-black text-white hover:bg-emerald-700">
-                              Duyệt
-                            </button>
-                            <button onClick={() => onUpdatePostPermission(user, "reject")} className="rounded-lg border border-red-200 px-3 py-1 text-[10px] font-black text-red-600 hover:bg-red-50">
-                              Từ chối
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => onDeleteUser(user.id)} disabled={user.id === currentUser?.id} className="rounded-lg p-1.5 text-red-500 hover:bg-red-600 hover:text-white disabled:opacity-50">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {user.activePlan ? (
+                        <div>
+                          <p className="text-xs font-black text-blue-950">{user.activePlan.planName}</p>
+                          <p className="mt-1 text-[11px] font-semibold text-slate-500">Còn {user.activePlan.remainingPosts} lượt</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400">Chưa mua gói</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1891,6 +1926,144 @@ function AdminUsersPanel({ currentUser, usersList, isUsersLoading, onToggleUserR
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AdminPlansPanel({ plans, isPlansLoading, planForm, onOpenPlanForm, onClosePlanForm, onSavePlan, setPlanForm }: any) {
+  const totalRevenue = plans.reduce((sum: number, plan: PricingPlan) => sum + Number(plan.revenue || 0), 0);
+  const totalSubscribers = plans.reduce((sum: number, plan: PricingPlan) => sum + Number(plan.subscriberCount || 0), 0);
+  const activePlans = plans.filter((plan: PricingPlan) => plan.isActive);
+
+  return (
+    <div className="p-5 lg:p-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-blue-950">Quản lí gói đăng tin</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">Theo dõi số lượng môi giới thuê gói và doanh thu theo từng gói dịch vụ.</p>
+        </div>
+        <button onClick={() => onOpenPlanForm()} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#ffbd00] px-5 text-sm font-black text-blue-950 hover:bg-[#f2b200]">
+          <Plus className="h-5 w-5" />
+          Tạo gói mới
+        </button>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-3">
+        <AdminStatCard icon={Package} label="Tổng gói hiện có" value={plans.length} tone="blue" delta="0.0%" />
+        <AdminStatCard icon={Users} label="Tổng lượt thuê gói" value={totalSubscribers} tone="green" delta="0.0%" />
+        <AdminStatCard icon={BarChart3} label="Tổng doanh thu gói" value={totalRevenue} tone="amber" delta="0.0%" />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-6 py-4">
+          <h3 className="text-base font-black text-blue-950">Danh sách gói dịch vụ</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{activePlans.length} gói đang hoạt động trên hệ thống</p>
+        </div>
+        {isPlansLoading ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="text-xs font-medium text-slate-400">Đang tải danh sách gói dịch vụ...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left">
+              <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500">
+                <tr>
+                  <th className="px-6 py-4">Tên gói</th>
+                  <th className="px-6 py-4">Giá</th>
+                  <th className="px-6 py-4">Số bài</th>
+                  <th className="px-6 py-4">Thời hạn</th>
+                  <th className="px-6 py-4">Môi giới thuê</th>
+                  <th className="px-6 py-4">Doanh thu</th>
+                  <th className="px-6 py-4">Trạng thái</th>
+                  <th className="px-6 py-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {plans.map((plan: PricingPlan) => (
+                  <tr key={plan.id} className="hover:bg-slate-50/70">
+                    <td className="px-6 py-4">
+                      <p className="font-black text-blue-950">{plan.name}</p>
+                      <p className="mt-1 max-w-[240px] text-xs font-medium text-slate-500">{plan.description}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-black text-blue-700">{plan.price.toLocaleString("vi-VN")} đ</td>
+                    <td className="px-6 py-4 text-sm font-black text-slate-900">{plan.postLimit}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-600">{plan.durationDays} ngày</td>
+                    <td className="px-6 py-4 text-sm font-black text-slate-900">{Number(plan.subscriberCount || 0).toLocaleString("vi-VN")}</td>
+                    <td className="px-6 py-4 text-sm font-black text-slate-900">{Number(plan.revenue || 0).toLocaleString("vi-VN")} đ</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-lg border px-3 py-1 text-[11px] font-black ${plan.isActive ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+                        {plan.isActive ? "Đang bán" : "Đã tắt"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button onClick={() => onOpenPlanForm(plan)} className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-4 text-xs font-black text-blue-950 hover:bg-blue-50">
+                        Chỉnh sửa
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {planForm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/45 px-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-black text-blue-950">{planForm.id ? "Chỉnh sửa gói dịch vụ" : "Tạo gói dịch vụ mới"}</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Thiết lập giá, số lượng bài đăng và thời hạn cho môi giới.</p>
+              </div>
+              <button onClick={onClosePlanForm} className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={onSavePlan} className="space-y-5 px-6 py-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>Tên gói</span>
+                  <input value={planForm.name || ""} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, name: event.target.value }))} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>Giá bán (VND)</span>
+                  <input type="number" value={String(planForm.price || 0)} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, price: Number(event.target.value) }))} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>Số lượng bài đăng</span>
+                  <input type="number" value={String(planForm.postLimit || 0)} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, postLimit: Number(event.target.value) }))} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <label className="space-y-2 text-sm font-black text-slate-700">
+                  <span>Thời hạn (ngày)</span>
+                  <input type="number" value={String(planForm.durationDays || 30)} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, durationDays: Number(event.target.value) }))} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+              </div>
+
+              <label className="space-y-2 text-sm font-black text-slate-700">
+                <span>Mô tả</span>
+                <textarea value={planForm.description || ""} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, description: event.target.value }))} className="min-h-24 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+              </label>
+
+              <label className="inline-flex items-center gap-3 text-sm font-black text-slate-700">
+                <input type="checkbox" checked={planForm.isActive !== false} onChange={(event) => setPlanForm((prev: any) => ({ ...prev, isActive: event.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                Gói đang mở bán
+              </label>
+
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+                <button type="button" onClick={onClosePlanForm} className="h-11 rounded-lg border border-slate-300 bg-white px-6 text-sm font-black text-slate-700 hover:bg-slate-50">
+                  Hủy
+                </button>
+                <button type="submit" className="h-11 rounded-lg bg-blue-600 px-6 text-sm font-black text-white hover:bg-blue-700">
+                  Lưu gói dịch vụ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -33,6 +33,7 @@ import { useApp } from "@/context/AppContext";
 import { BoardingRoom, ROOM_TYPE_OPTIONS, User } from "@/types";
 import { formatVND } from "@/components/RoomCard";
 import { roomService } from "@/services/roomService";
+import { userService } from "@/services/userService";
 import { roomDetailPath } from "@/lib/routes";
 import PageLoader from "@/components/PageLoader";
 
@@ -154,7 +155,7 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (!isEditPage || searchParams.get("tab") !== "listing" || !currentUser) return;
-    if (currentUser.role === "admin" || currentUser.postPermissionStatus === "approved") {
+    if (currentUser.role === "admin" || (currentUser.freePostsRemaining || 0) > 0 || (currentUser.activePlan?.remainingPosts || 0) > 0) {
       setEditPanel("listing");
     }
   }, [currentUser, isEditPage, searchParams]);
@@ -178,6 +179,12 @@ export default function UserProfilePage() {
     return Array.from(new Set(districts)).slice(0, 6);
   }, [rooms]);
   const isOwnProfile = currentUser?.username === profileUser?.username;
+  const hasPostingAccess = currentUser?.role === "admin" || (currentUser?.freePostsRemaining || 0) > 0 || (currentUser?.activePlan?.remainingPosts || 0) > 0;
+  const postingSummary = currentUser?.role === "admin"
+    ? "Tài khoản admin có thể đăng tin không giới hạn."
+    : (currentUser?.activePlan
+      ? `Gói ${currentUser.activePlan.planName} còn ${currentUser.activePlan.remainingPosts} lượt đăng.`
+      : `Bạn còn ${currentUser?.freePostsRemaining || 0}/3 lượt đăng miễn phí.`);
 
   const handleProfileTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -333,8 +340,8 @@ export default function UserProfilePage() {
 
   const openCreateListing = () => {
     if (!currentUser) return;
-    if (currentUser.role !== "admin" && currentUser.postPermissionStatus !== "approved") {
-      router.push("/admin");
+    if (!hasPostingAccess) {
+      router.push("/pricing");
       return;
     }
     setListingForm(createDefaultListingForm(currentUser));
@@ -352,6 +359,10 @@ export default function UserProfilePage() {
       const savedRoom = await roomService.createRoom(listingForm, currentUser.role, currentUser.id);
       setRooms((prev) => [savedRoom, ...prev]);
       setGlobalRooms((prev) => [savedRoom, ...prev]);
+      const refreshedUser = await userService.getUser(currentUser.id);
+      const nextUser = { ...currentUser, ...refreshedUser };
+      setCurrentUser(nextUser);
+      localStorage.setItem("bestroom_user", JSON.stringify(nextUser));
       setEditPanel("profile");
     } catch (err: any) {
       setCreateListingError(err.message || "Không thể tạo tin đăng phòng trọ.");
@@ -471,6 +482,9 @@ export default function UserProfilePage() {
           galleryImageError={listingImagesError}
           onUploadGalleryImages={handleUploadListingImages}
           canEdit={isOwnProfile}
+          hasPostingAccess={Boolean(hasPostingAccess)}
+          postingSummary={postingSummary}
+          onGoPricing={() => router.push("/pricing")}
         />
       </>
     );
@@ -660,6 +674,10 @@ function CreateListingPanel({
   isUploadingGalleryImages,
   galleryImageError,
   onUploadGalleryImages,
+  currentUser,
+  hasPostingAccess,
+  postingSummary,
+  onGoPricing,
 }: {
   form: Partial<BoardingRoom>;
   setForm: React.Dispatch<React.SetStateAction<Partial<BoardingRoom>>>;
@@ -673,6 +691,10 @@ function CreateListingPanel({
   isUploadingGalleryImages: boolean;
   galleryImageError: string | null;
   onUploadGalleryImages: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  currentUser: User | null;
+  hasPostingAccess: boolean;
+  postingSummary: string;
+  onGoPricing: () => void;
 }) {
   const updateField = <K extends keyof BoardingRoom>(key: K, value: BoardingRoom[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -702,6 +724,14 @@ function CreateListingPanel({
         </div>
 
         <div className="px-6 py-5">
+          <div className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${hasPostingAccess ? "border-blue-100 bg-blue-50 text-blue-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+            <p>{postingSummary}</p>
+            {!hasPostingAccess && currentUser?.role !== "admin" && (
+              <button type="button" onClick={onGoPricing} className="mt-3 inline-flex h-10 items-center rounded-lg bg-[#ffc400] px-4 text-sm font-black text-slate-950 hover:bg-amber-300">
+                Mua gói đăng tin
+              </button>
+            )}
+          </div>
           <section className="border-b border-slate-100 pb-5">
             <SectionTitle index="1" title="Thông tin bắt buộc" />
             <ListingTextInput
@@ -792,7 +822,7 @@ function CreateListingPanel({
           <button type="button" onClick={onCancel} className="h-11 rounded-lg border border-slate-300 bg-white px-7 text-sm font-black text-slate-700 hover:bg-slate-100">
             Hủy
           </button>
-          <button disabled={isSubmitting} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#ffc400] px-7 text-sm font-black text-slate-950 shadow hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70">
+          <button disabled={isSubmitting || !hasPostingAccess} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#ffc400] px-7 text-sm font-black text-slate-950 shadow hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70">
             <Save className="h-4 w-4" />
             {isSubmitting ? "Đang tạo tin..." : "Đăng tin phòng trọ"}
           </button>
@@ -1089,6 +1119,9 @@ function EditProfileView({
   galleryImageError,
   onUploadGalleryImages,
   canEdit,
+  hasPostingAccess,
+  postingSummary,
+  onGoPricing,
 }: {
   profileUser: User;
   currentUser: User | null;
@@ -1129,6 +1162,9 @@ function EditProfileView({
   galleryImageError: string | null;
   onUploadGalleryImages: (event: React.ChangeEvent<HTMLInputElement>) => void;
   canEdit: boolean;
+  hasPostingAccess: boolean;
+  postingSummary: string;
+  onGoPricing: () => void;
 }) {
   const activeRooms = rooms.filter((room) => room.status === "còn phòng");
   const areas = Array.from(new Set(rooms.map((room) => room.district).filter(Boolean)));
@@ -1194,6 +1230,10 @@ function EditProfileView({
               isUploadingGalleryImages={isUploadingGalleryImages}
               galleryImageError={galleryImageError}
               onUploadGalleryImages={onUploadGalleryImages}
+              currentUser={currentUser}
+              hasPostingAccess={Boolean(hasPostingAccess)}
+              postingSummary={postingSummary}
+              onGoPricing={onGoPricing}
             />
           ) : (
           <form id="edit-profile-form" onSubmit={onSave} className="space-y-3">

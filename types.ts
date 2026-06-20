@@ -54,6 +54,37 @@ export interface User {
   experienceYears?: string;
   workingHours?: string;
   postPermissionStatus?: "none" | "pending" | "approved" | "rejected";
+  freePostsLimit?: number;
+  freePostsUsed?: number;
+  freePostsRemaining?: number;
+  activePlan?: UserPlanPurchase | null;
+}
+
+export interface PricingPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  postLimit: number;
+  durationDays: number;
+  isActive: boolean;
+  subscriberCount?: number;
+  revenue?: number;
+  createdAt?: string;
+}
+
+export interface UserPlanPurchase {
+  id: string;
+  userId: string;
+  planId: string;
+  planName: string;
+  pricePaid: number;
+  postLimit: number;
+  remainingPosts: number;
+  status: "active" | "expired";
+  startAt: string;
+  endAt: string;
+  createdAt: string;
 }
 
 export interface Review {

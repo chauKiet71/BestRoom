@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapRoomFromDb, mapUserFromDb } from "@/lib/mappers";
+import { getUserPostingStats } from "@/lib/pricing";
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function GET(
 
     // Query user by username (case-insensitive)
     const userRows = await sql`
-      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status 
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status, free_posts_used 
       FROM users 
       WHERE LOWER(username) = LOWER(${decodeURIComponent(username)})
     `;
@@ -27,6 +28,7 @@ export async function GET(
     }
 
     const { password: _password, ...user } = mapUserFromDb(userRows[0]);
+    const postingStats = await getUserPostingStats(user.id);
 
     // Query all rooms posted by this user
     const roomRows = await sql`
@@ -46,7 +48,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      user,
+      user: { ...user, ...postingStats },
       rooms,
       scheduleCount: Number(scheduleRows[0]?.count || 0),
     });

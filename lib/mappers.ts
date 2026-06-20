@@ -73,5 +73,6 @@ export function mapUserFromDb(row: any): any {
     experienceYears: row.experience_years || "3 năm",
     workingHours: row.working_hours || "8:00 - 21:00 (T2 - CN)",
     postPermissionStatus: row.post_permission_status || "none",
+    freePostsUsed: Number(row.free_posts_used || 0),
   };
 }

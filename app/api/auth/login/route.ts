@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapUserFromDb } from "@/lib/mappers";
+import { getUserPostingStats } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { password: _, ...safeUser } = mapUserFromDb(found[0]);
-    return NextResponse.json({ success: true, user: safeUser });
+    const postingStats = await getUserPostingStats(safeUser.id);
+    return NextResponse.json({ success: true, user: { ...safeUser, ...postingStats } });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Đăng nhập thất bại: " + err.message },

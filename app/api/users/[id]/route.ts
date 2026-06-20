@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { mapUserFromDb } from "@/lib/mappers";
+import { getUserPostingStats } from "@/lib/pricing";
 
 export async function GET(
   _request: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
     }
 
     const rows = await sql`
-      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
+      SELECT id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status, free_posts_used
       FROM users
       WHERE id = ${userId}
     `;
@@ -26,7 +27,8 @@ export async function GET(
     }
 
     const { password: _password, ...user } = mapUserFromDb(rows[0]);
-    return NextResponse.json(user);
+    const postingStats = await getUserPostingStats(user.id);
+    return NextResponse.json({ ...user, ...postingStats });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Server error: " + err.message },
@@ -93,7 +95,7 @@ export async function PUT(
         UPDATE users 
         SET email = ${email}, phone = ${phone}, avatar = ${avatar || ''}, fullname = ${fullname || ''}, experience_years = ${experienceYears || '3 năm'}, working_hours = ${workingHours || '8:00 - 21:00 (T2 - CN)'} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
+        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status, free_posts_used
       `;
 
       if (rows.length === 0) {
@@ -101,7 +103,8 @@ export async function PUT(
       }
 
       const { password: _password, ...user } = mapUserFromDb(rows[0]);
-      return NextResponse.json({ success: true, user });
+      const postingStats = await getUserPostingStats(user.id);
+      return NextResponse.json({ success: true, user: { ...user, ...postingStats } });
 
     } else {
       // Admin is updating user's role
@@ -117,7 +120,7 @@ export async function PUT(
         UPDATE users 
         SET role = ${role} 
         WHERE id = ${userIdToUpdate} 
-        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status
+        RETURNING id, username, email, phone, role, avatar, fullname, experience_years, working_hours, post_permission_status, free_posts_used
       `;
 
       if (rows.length === 0) {
@@ -125,7 +128,8 @@ export async function PUT(
       }
 
       const { password: _password, ...user } = mapUserFromDb(rows[0]);
-      return NextResponse.json({ success: true, user });
+      const postingStats = await getUserPostingStats(user.id);
+      return NextResponse.json({ success: true, user: { ...user, ...postingStats } });
     }
   } catch (err: any) {
     return NextResponse.json(

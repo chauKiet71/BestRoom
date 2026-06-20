@@ -60,10 +60,9 @@ export async function POST(request: NextRequest) {
       "order_invoice_number",
       "invoice_number",
       "invoiceNumber",
-      "orderCode",
-      "referenceCode",
     ]);
     const transferContent = pickFirstValue(body, [
+      "code",
       "content",
       "description",
       "transfer_content",
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ignored: true });
     }
 
-    let paymentRows;
+    let paymentRows: any[] = [];
     if (invoiceNumber) {
       paymentRows = await sql`
         SELECT
@@ -114,7 +113,9 @@ export async function POST(request: NextRequest) {
         WHERE pp.invoice_number = ${invoiceNumber}
         LIMIT 1
       `;
-    } else {
+    }
+
+    if (paymentRows.length === 0 && transferContent && paidAmount > 0) {
       paymentRows = await sql`
         SELECT
           pp.id AS payment_id,
@@ -131,7 +132,10 @@ export async function POST(request: NextRequest) {
         JOIN users u ON u.id = pp.user_id
         WHERE pp.status = 'pending'
           AND pp.amount = ${paidAmount}
-          AND POSITION(LOWER(u.username) IN LOWER(${transferContent})) > 0
+          AND (
+            POSITION(LOWER(u.username) IN LOWER(${transferContent})) > 0
+            OR POSITION(LOWER(COALESCE(pp.checkout_fields->>'description', '')) IN LOWER(${transferContent})) > 0
+          )
         ORDER BY pp.created_at DESC
         LIMIT 1
       `;

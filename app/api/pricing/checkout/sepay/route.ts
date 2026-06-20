@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT status
+      SELECT status, plan_id, created_at
       FROM plan_payments
       WHERE invoice_number = ${invoiceNumber}
         AND user_id = ${userId}
@@ -128,10 +128,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Không tìm thấy giao dịch." }, { status: 404 });
     }
 
-    const postingStats = rows[0].status === "paid" ? await getUserPostingStats(userId) : null;
+    let status = rows[0].status;
+    let postingStats = status === "paid" ? await getUserPostingStats(userId) : null;
+
+    if (status === "pending") {
+      const activeRows = await sql`
+        SELECT id
+        FROM user_plan_purchases
+        WHERE user_id = ${userId}
+          AND plan_id = ${rows[0].plan_id}
+          AND status = 'active'
+          AND created_at >= (${rows[0].created_at}::timestamp - INTERVAL '30 minutes')
+        LIMIT 1
+      `;
+
+      if (activeRows.length > 0) {
+        status = "paid";
+        postingStats = await getUserPostingStats(userId);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      status: rows[0].status,
+      status,
       postingStats,
     });
   } catch (err: any) {

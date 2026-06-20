@@ -3,6 +3,9 @@ import type { NextRequest } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { activatePlanForUser, getUserPostingStats } from "@/lib/pricing";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function pickFirstValue(body: any, keys: string[]) {
   for (const key of keys) {
     if (body?.[key] !== undefined && body?.[key] !== null && body?.[key] !== "") {
@@ -22,16 +25,24 @@ function parseAmount(value: string) {
   return Number(value.replace(/[^\d]/g, "") || 0);
 }
 
+function normalizeSecret(value: string) {
+  return value.replace(/^(Bearer|Apikey)\s+/i, "").trim();
+}
+
+export async function GET() {
+  return NextResponse.json({ success: true, message: "SePay IPN endpoint is ready." });
+}
+
 export async function POST(request: NextRequest) {
   try {
     await ensureSchema();
 
-    const ipnSecret = process.env.SEPAY_IPN_SECRET || process.env.SEPAY_SECRET_KEY || "";
+    const ipnSecret = normalizeSecret(process.env.SEPAY_IPN_SECRET || process.env.SEPAY_SECRET_KEY || "");
     if (ipnSecret) {
       const receivedSecret =
         request.headers.get("x-secret-key") ||
         request.headers.get("x-sepay-secret-key") ||
-        request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+        normalizeSecret(request.headers.get("authorization") || "") ||
         "";
 
       if (receivedSecret !== ipnSecret) {

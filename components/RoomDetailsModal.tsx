@@ -51,6 +51,7 @@ function phoneHref(phone: string) {
 
 export default function RoomDetailsModal() {
   const {
+    rooms,
     selectedRoom,
     setSelectedRoom,
     currentUser,
@@ -276,26 +277,7 @@ export default function RoomDetailsModal() {
     { icon: CircleDot, label: "Khóa vân tay", enabled: true },
   ];
 
-  const relatedRooms = [
-    {
-      title: "Studio ban công thoáng, full nội thất",
-      price: 4800000,
-      area: 25,
-      image: roomImages[1] || roomImages[0],
-    },
-    {
-      title: "Căn hộ dịch vụ cao cấp, gần trung tâm",
-      price: 6000000,
-      area: 30,
-      image: roomImages[2] || roomImages[0],
-    },
-    {
-      title: "Phòng trọ mới xây, cửa sổ lớn",
-      price: 4200000,
-      area: 22,
-      image: roomImages[3] || roomImages[0],
-    },
-  ];
+  const relatedRooms = rooms.filter((room) => room.id !== selectedRoom.id).slice(0, 6);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
@@ -507,9 +489,9 @@ export default function RoomDetailsModal() {
                   <h2 className="mb-3 text-lg font-black text-blue-950">Tin đăng liên quan</h2>
                   <div className="grid gap-3 md:grid-cols-3">
                     {relatedRooms.map((room) => (
-                      <article key={room.title} className="overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm">
+                      <article key={room.id} className="overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm">
                         <div className="flex gap-3 p-2">
-                          <img src={room.image} alt={room.title} className="h-20 w-24 shrink-0 rounded-md object-cover" referrerPolicy="no-referrer" />
+                          <img src={room.image || room.images?.[0] || fallbackImage} alt={room.title} className="h-20 w-24 shrink-0 rounded-md object-cover" referrerPolicy="no-referrer" />
                           <div className="min-w-0 flex-1">
                             <h3 className="line-clamp-2 text-xs font-black text-blue-950">{room.title}</h3>
                             <p className="mt-1 text-sm font-black text-blue-600">{formatVND(room.price)}</p>

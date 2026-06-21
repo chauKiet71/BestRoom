@@ -888,7 +888,8 @@ function CreateListingPanel({
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <ListingTextInput label="Giá thuê / tháng (VND)" required type="number" value={String(form.price || "")} onChange={(value) => updateField("price", Number(value))} />
               <ListingTextInput label="Diện tích sử dụng (m2)" required type="number" value={String(form.area || "")} onChange={(value) => updateField("area", Number(value))} />
-              <ListingSelect label="Loại phòng" value={form.roomType || "Phòng trọ"} onChange={(value) => updateField("roomType", value as BoardingRoom["roomType"])} options={[...ROOM_TYPE_OPTIONS]} />
+              {/* <ListingSelect label="Loại phòng" value={form.roomType || "Phòng trọ"} onChange={(value) => updateField("roomType", value as BoardingRoom["roomType"])} options={[...ROOM_TYPE_OPTIONS]} /> */}
+              <ListingSelect label="Trạng thái phòng" value={form.status || "còn phòng"} onChange={(value) => updateField("status", value as any)} options={["còn phòng", "hết phòng"]} />
             </div>
           </section>
 
@@ -920,7 +921,6 @@ function CreateListingPanel({
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <ListingSelect label="Phí nước sinh hoạt" value={form.waterFeeType || "có phí"} onChange={(value) => updateField("waterFeeType", value as any)} options={["có phí", "miễn phí"]} />
               <ListingSelect label="Bãi đậu xe máy" value={form.parkingFeeType || "miễn phí"} onChange={(value) => updateField("parkingFeeType", value as any)} options={["miễn phí", "có phí"]} />
-              <ListingSelect label="Trạng thái phòng" value={form.status || "còn phòng"} onChange={(value) => updateField("status", value as any)} options={["còn phòng", "hết phòng"]} />
               <ListingSelect label="Giờ giấc ra vào" value={form.hoursType || "tự do"} onChange={(value) => updateField("hoursType", value as any)} options={["tự do", "cố định"]} />
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-3">

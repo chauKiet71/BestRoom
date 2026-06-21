@@ -14,6 +14,7 @@ import {
   GraduationCap,
   Heart,
   Home,
+  Maximize2,
   MapPin,
   Search,
   ShieldCheck,
@@ -431,18 +432,19 @@ export default function HomePage() {
             </span>
           </label>
           <label className="space-y-2">
-            <span className="block text-sm font-extrabold text-slate-800">Loại phòng</span>
+            <span className="block text-sm font-extrabold text-slate-800">Diện tích</span>
             <span className="flex h-11 items-center gap-3 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-500">
-              <Home className="h-5 w-5 text-slate-900" />
+              <Maximize2 className="h-5 w-5 text-slate-900" />
               <select
-                value={filters.roomType}
-                onChange={(event) => setFilters((prev) => ({ ...prev, roomType: event.target.value }))}
+                value={filters.areaRange}
+                onChange={(event) => setFilters((prev) => ({ ...prev, areaRange: event.target.value }))}
                 className="w-full appearance-none border-none bg-transparent outline-none"
               >
-                <option value="all">Chọn loại phòng</option>
-                {ROOM_TYPE_OPTIONS.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
+                <option value="all">Chọn diện tích</option>
+                <option value="under-20">Dưới 20 m²</option>
+                <option value="20-30">20 - 30 m²</option>
+                <option value="30-45">30 - 45 m²</option>
+                <option value="above-45">Trên 45 m²</option>
               </select>
               <ChevronDown className="h-4 w-4" />
             </span>
@@ -452,6 +454,8 @@ export default function HomePage() {
             Tìm kiếm
           </button>
         </form>
+
+
       </section>
 
       <section className="mx-auto max-w-[1200px] px-4 pt-24 sm:px-6 lg:px-8">

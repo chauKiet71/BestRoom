@@ -206,9 +206,9 @@ export async function GET(request: NextRequest) {
       const limitIndex = params.length + 1;
       const offsetIndex = params.length + 2;
       const dataQuery = `
-        SELECT * FROM rooms 
+        SELECT rooms.*, users.fullname AS owner_fullname FROM rooms LEFT JOIN users ON rooms.owner_id = users.id 
         ${whereClause} 
-        ORDER BY ${verifiedSortBy} ${verifiedSortOrder} 
+        ORDER BY rooms.${verifiedSortBy} ${verifiedSortOrder} 
         LIMIT $${limitIndex} OFFSET $${offsetIndex}
       `;
       const rows = await query(dataQuery, [...params, limit, offset]);
@@ -222,9 +222,9 @@ export async function GET(request: NextRequest) {
     } else {
       // Fetch all matching records (non-paginated)
       const dataQuery = `
-        SELECT * FROM rooms 
+        SELECT rooms.*, users.fullname AS owner_fullname FROM rooms LEFT JOIN users ON rooms.owner_id = users.id 
         ${whereClause} 
-        ORDER BY ${verifiedSortBy} ${verifiedSortOrder}
+        ORDER BY rooms.${verifiedSortBy} ${verifiedSortOrder}
       `;
       const rows = await query(dataQuery, params);
       return NextResponse.json(rows.map(mapRoomFromDb));

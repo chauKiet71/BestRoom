@@ -129,7 +129,7 @@ export default function FiltersSidebar() {
           />
         </div>
 
-        <div>
+        {/* <div>
           <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider block mb-1.5">Loại phòng</label>
           <select
             value={tempFilters.roomType}
@@ -141,7 +141,7 @@ export default function FiltersSidebar() {
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
-        </div>
+        </div> */}
 
         {/* SECTION 2: PRICE RANGE */}
         <div>

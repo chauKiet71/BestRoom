@@ -330,6 +330,9 @@ export default function RoomDetailsModal() {
                     className="h-[360px] w-full object-cover"
                     referrerPolicy="no-referrer"
                   />
+                  <span className={`absolute left-4 top-4 z-10 rounded-full px-4 py-1.5 text-sm font-black text-white shadow-md ${selectedRoom.status === "hết phòng" ? "bg-gray-500" : "bg-emerald-500"}`}>
+                    {selectedRoom.status === "hết phòng" ? "Hết phòng" : "Còn phòng"}
+                  </span>
                   <div className="absolute right-4 top-4 flex gap-2">
                     <IconButton
                       icon={Heart}

@@ -153,12 +153,12 @@ export default function SearchPage() {
               <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, priceRange: "all" }))} />
             </span>
           )}
-          {filters.roomType !== "all" && (
+          {/* {filters.roomType !== "all" && (
             <span className="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-1 rounded-md border border-indigo-100 flex items-center gap-1">
               Loại phòng: {filters.roomType}
               <X className="h-3 w-3 cursor-pointer hover:text-red-500" onClick={() => setFilters((p) => ({ ...p, roomType: "all" }))} />
             </span>
-          )}
+          )} */}
           {filters.areaRange !== "all" && (
             <span className="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-1 rounded-md border border-blue-100 flex items-center gap-1">
               Diện tích: {filters.areaRange === "under-20" ? "Dưới 20 m²" : filters.areaRange === "20-30" ? "20 - 30 m²" : filters.areaRange === "30-45" ? "30 - 45 m²" : "Trên 45 m²"}

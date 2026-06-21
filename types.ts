@@ -37,6 +37,7 @@ export interface BoardingRoom {
   electricityPrice: number; // Giá điện (VND/kWh)
   interestedCount: number; // Trọ được quan tâm (lượt click/view)
   ownerId?: string | null;
+  ownerFullname?: string;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string | null;
   createdAt: string; // ISO date string, used for "Trọ mới đăng"

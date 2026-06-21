@@ -88,6 +88,9 @@ export default function RoomCard({
             referrerPolicy="no-referrer"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
+          <span className={`absolute right-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-black text-white shadow-md ${room.status === "hết phòng" ? "bg-gray-500" : "bg-emerald-500"}`}>
+            {room.status === "hết phòng" ? "Hết phòng" : "Còn phòng"}
+          </span>
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/75 via-black/35 to-transparent px-3 pb-2 pt-8 text-xs text-white">
             <span>{formatRelativeTime(room.createdAt)}</span>
             <span>{room.interestedCount || 0} lượt xem</span>
@@ -119,9 +122,9 @@ export default function RoomCard({
 
           <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-slate-500">
             <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-blue-50 text-xs text-blue-700">
-              {(room.contactName || "BR").slice(0, 2).toUpperCase()}
+              {(room.ownerFullname || room.contactName || "BR").slice(0, 2).toUpperCase()}
             </span>
-            <span className="text-slate-800">{room.contactName || "BestRoom"}</span>
+            <span className="text-slate-800">{room.ownerFullname || room.contactName || "BestRoom"}</span>
             <Briefcase className="h-4 w-4 text-slate-400" />
             <span>{Math.max(1, Math.round((room.interestedCount || 0) / 10))} tin đăng</span>
           </div>
@@ -157,6 +160,9 @@ export default function RoomCard({
           referrerPolicy="no-referrer"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
+        <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-black text-white shadow-md ${room.status === "hết phòng" ? "bg-gray-500" : "bg-emerald-500"}`}>
+          {room.status === "hết phòng" ? "Hết phòng" : "Còn phòng"}
+        </span>
         {!isAdminMode && (
           <button
             type="button"
